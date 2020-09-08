@@ -8,12 +8,14 @@ import numpy as np
 import os
 from std_msgs.msg import String
 import rospy
-from rt605_arm_control_api import HiwinRobotInterface
+from control_node import HiwinRobotInterface
 
 DEBUG = True  # Set True to show debug log, False to hide it.
 ItemNo = 0
-positon = [0.0,36.8,11.35,-90,0,0]
-Goal = [0.0,36.8,11.35,-90,0,0]
+positon = [0.0,36.8,11.35,-180,0,90]
+Goal = [0.0,36.8,11.35,-180,0,90]
+Current_pos = [0.0,0.0,0.0,0.0,0.0,0.0]
+
 ##-----------switch define------------##
 class switch(object):
     def __init__(self, value):
@@ -44,31 +46,33 @@ class pos():
         self.yaw = 0
 def test_task():
     global ItemNo
-    #robot_ctr.Set_motor_state(state)
-    if robot_ctr.is_in_idle == True:
-        for case in switch(ItemNo):
-            if case(0):
-                robot_ctr.Step_AbsPTPCmd(pos)
-                ItemNo = 1
-            if case(1):
-                pos.x = pos.x + 1
-                pos.y = pos.y + 1
-                robot_ctr.Step_AbsPTPCmd(pos)
-                ItemNo = 2
-            if case(2):
-                pos.x = pos.x + 1
-                pos.y = pos.y + 1
-                robot_ctr.Step_AbsPTPCmd(pos)
-                ItemNo = 3
-            if case(3):
-                pos.x = pos.x + 1
-                pos.y = pos.y + 1
-                robot_ctr.Step_AbsPTPCmd(pos)
-                ItemNo = 4
-            if case(4):
-                robot_ctr.Go_home()
-                ItemNo = 4
-
+    Arm_state = robot_ctr.get_robot_motion_state()
+    if Arm_state == 1:
+        if ItemNo==0:
+            positon = [0.0,36.8,11.35,-180,0,90]
+            robot_ctr.Step_AbsPTPCmd(positon)
+            ItemNo = 1
+            print("task:0")
+        elif ItemNo==1:
+            positon = [0.0,46.8,11.35,-180,0,90]
+            robot_ctr.Step_AbsPTPCmd(positon)
+            ItemNo = 2
+            print("task:1")
+        elif ItemNo==2:
+            positon = [-10.0,26.8,11.35,-180,0,90]
+            robot_ctr.Step_AbsPTPCmd(positon)
+            ItemNo = 3
+            print("task:2")
+        elif ItemNo==3:
+            positon = [10.0,46.8,11.35,-180,0,90]
+            robot_ctr.Step_AbsPTPCmd(positon)
+            ItemNo = 4
+            print("task:3")
+        elif ItemNo==4:
+            robot_ctr.Set_operation_mode(0)
+            robot_ctr.Go_home()
+            ItemNo = 4
+            print("task:4")
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser("Driver Node")
@@ -103,40 +107,23 @@ if __name__ == '__main__':
 
     robot_ctr = HiwinRobotInterface(robot_ip=robot_ip, connection_level=control_mode,name=robot_name)
     robot_ctr.connect()
-    #robot_mtr = HiwinRobotInterface(robot_ip=robot_ip, connection_level=1,name=robot_name)
     try:
-        #rospy.on_shutdown(myhook)
         if robot_ctr.is_connected():
             robot_ctr.Set_operation_mode(0)
-            robot_ctr.Set_override_ratio(50)
+            # set tool & base coor
+            tool_coor = [0,0,180,0,0,0]
+            base_coor = [0,0,0,0,0,0]
+            robot_ctr.Set_base_number(1)
+            base_result = robot_ctr.Define_base(1,base_coor)
+            robot_ctr.Set_tool_number(1)
+            tool_result = robot_ctr.Define_tool(1,tool_coor)
+
+            robot_ctr.Set_operation_mode(1)
+            robot_ctr.Set_override_ratio(10)
+            robot_ctr.Set_acc_dec_ratio(100)
+        
         while(1):
-            #time.sleep(1)
-            aa = robot_ctr.get_robot_motion_state()
-            print("get_robot_motion_state:",aa)
-            if aa == 1:
-                if ItemNo==0:
-                    robot_ctr.Step_AbsPTPCmd(positon)
-                    ItemNo = 1
-                    print("task:0")
-                elif ItemNo==1:
-                    positon = [0.0,46.8,11.35,0,-90,0]
-                    robot_ctr.Step_AbsPTPCmd(positon)
-                    ItemNo = 2
-                    print("task:1")
-                elif ItemNo==2:
-                    positon = [-10.0,26.8,11.35,-90,0,0]
-                    robot_ctr.Step_AbsPTPCmd(positon)
-                    ItemNo = 3
-                    print("task:2")
-                elif ItemNo==3:
-                    positon = [10.0,46.8,11.35,-90,0,0]
-                    robot_ctr.Step_AbsPTPCmd(positon)
-                    ItemNo = 4
-                    print("task:3")
-                elif ItemNo==4:
-                    robot_ctr.Go_home()
-                    ItemNo = 4
-                    print("task:4")
+            test_task()
             
         rospy.spin()
     except KeyboardInterrupt:
