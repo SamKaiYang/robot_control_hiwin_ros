@@ -1,17 +1,53 @@
+## How to use the module
+```python
+from control_node import HiwinRobotInterface
+```
+### Making Python Module for Another Package
+* catkin [user guide](http://docs.ros.org/api/catkin/html/user_guide/setup_dot_py.html) for setup
+
+1. Uncomment following line in CMakeLists.txt
+```cmake
+catkin_python_setup()
+```
+
+2. Let structure of package like following:
+```
+-- package_name/
+   |-- some_folder/
+   |-- src/
+       |-- package_name/
+           |-- __init__.py
+           |-- some_package/
+           |-- some_module.py
+   |-- CMakeLists.txt
+   |-- package.xml
+   |-- setup.py
+```
+
+3. Make a setup.<span></span>py in package
+```python
+## ! DO NOT MANUALLY INVOKE THIS setup.py, USE CATKIN INSTEAD
+
+from distutils.core import setup
+from catkin_pkg.python_setup import generate_distutils_setup
+
+# fetch values from package.xml
+setup_args = generate_distutils_setup(
+    packages=['package_name'],
+    package_dir={'': 'src'},
+)
+
+setup(**setup_args)
+```
+
+4. Build the package
+```bash
+cd SOMEWORKSPACE
+catkin_make
+```
+
+
 # HIWIN ROS-I Package
-
-This package allows you to monitor and control HIWIN industrial robots within the ROS framework. HIWIN currently support the following supports packages.
-- [RA605 710 GB Robotic arm](https://www.hiwin.tw/products/mar/articulated/ra605/ra605_710_gb.aspx) - 5kg payload industrial robot.
-- [RA610 1355 Robotic arm](https://www.hiwin.tw/products/mar/articulated/ra610/ra610_1355_gb.aspx) - 10kg playload industrial robot.
-- [RA620 1621 Robotic arm](https://www.hiwin.tw/products/mar/articulated/ra620/ra620_1621.aspx) - 20kg playload industrial robot.
-- [XEG16 electric gripper](https://www.hiwin.tw/products/ee/xeg/xeg_16.aspx) - High presision electric gripper.
-- [XEG32 electric gripper](https://www.hiwin.tw/products/ee/xeg/xeg_32.aspx) - High presision electric gripper.
-- [XEG64 electric gripper](https://www.hiwin.tw/products/ee/xeg/xeg_64.aspx) - High presision electric gripper.
-
-## Prerequisites:
-- A 64bit Windows OS (x64 architecture is needed for .dll libraries)
-- Install [ROS on Windows](http://wiki.ros.org/Installation/Windows)
-
 ##  Run simulated MoveIt! environment without real robot
 - Run the demo launch file with the command:
 
@@ -47,26 +83,6 @@ If you already purchased a robotic arm and an electric gripper you can follow th
     Note: 
      - substitute `<manipulator_model>` with the robot model (default is _ra605_710_gb_)
      - substitute `<gripper_model>` with the gripper model (e.g. _xeg_16_).
-    
-### Control the interface for HIWIN's electric gripper XEG series
-
-If you want to use HIWIN's gripper independently, you need to run the gripper interface to control the gripper via ROS.
-
-1. Connect the gripper controller as illustrated in the gripper manual.
-2. Before running your planner, run the gripper interface node.
-    
-    `roslaunch hiwin_driver hiwin_gripper_interface.launch gripper_com_port:=<port> gripper_model:=<model> gripper_name:=<name>`
- 
-    Note:
-    - substitute`<port>` with the COM port the gripper is connected to.
-    - substitute `<model>` with the gripper model (e.g. _xeg_16_).
-    - The driver node will be listening for target positions on the action server `<name>/follow_joint_trajectory`.
-      Choose `<name>` accordingly to your planning groups and controllers definitions.
-    - If successfully run, this node will launch a test movement of the gripper. The test is necessary for the correct 
-      operation of the gripper.
-3. Run your planner or other commander nodes.
-    
-    `roslaunch <some_package> <some_planning_execution_launch_file>`
 
 ### Licence
 
