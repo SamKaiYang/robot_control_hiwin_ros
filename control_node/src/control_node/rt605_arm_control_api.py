@@ -422,3 +422,102 @@ class HiwinRobotInterface(object):
     #     count = 20
     #     result = self.HRSDKLib.get_alarm_code(c_int(self.robot_id),c_int(count),alarm_code)
     #     return result == 0, [float(value) for value in (alarm_code)]
+# I/O control 
+    def Get_current_digital_inputs(self):
+        # type: () -> (list[int])
+        """Get Robot current digital inputs.
+
+        :returns
+            inputs: list of the value of the digital inputs
+            (1 if on 0 if off)
+        """
+        # If the robot is not connected, try reconnecting
+        if not self.is_connected():
+            successfully_reconnected = self.reconnect()
+            if not successfully_reconnected:
+                rospy.logwarn("Robot disconnected, it was not possible to get "
+                              "the digital inputs")
+                return [-1 for _ in range(48)]
+        inputs = []
+        for i in range(1, 49):
+            inputs.append(self.HRSDKLib.get_digital_input(c_int(self.robot_id),
+                                                          c_int(i)))
+        return inputs
+
+    def Get_current_digital_outputs(self):
+        # type: () -> (list[int])
+        """Get Robot current digital outputs.
+
+        :returns
+            outputs: list of the value of the digital outputs
+            (1 if on 0 if off)
+        """
+        # If the robot is not connected, try reconnecting
+        if not self.is_connected():
+            successfully_reconnected = self.reconnect()
+            if not successfully_reconnected:
+                rospy.logwarn("Robot disconnected, it was not possible to get "
+                              "the digital outputs")
+                return [-1 for _ in range(48)]
+        outputs = []
+        for i in range(1, 49):
+            outputs.append(self.HRSDKLib.get_digital_output(c_int(self.robot_id),
+                                                           c_int(i)))
+        return outputs
+
+    def Set_digital_input(self,index,value):
+        if not self.is_connected():
+            successfully_reconnected = self.reconnect()
+            if not successfully_reconnected:
+                rospy.logwarn("Robot disconnected, it was not possible to set "
+                              "the digital outputs")
+        self.HRSDKLib.set_digital_output(c_int(self.robot_id), c_int(index),c_bool(value))
+
+    def Set_robot_output(self,index,value):
+        if not self.is_connected():
+            successfully_reconnected = self.reconnect()
+            if not successfully_reconnected:
+                rospy.logwarn("Robot disconnected, it was not possible to set "
+                              "the digital outputs")
+        self.HRSDKLib.set_robot_output(c_int(self.robot_id), c_int(index),c_bool(value))
+
+    def Get_current_robot_outputs(self):
+        # type: () -> (list[int])
+        """Get Robot current robot outputs.
+
+        :returns
+            outputs: list of the value of the robot outputs
+            (1 if on 0 if off)
+        """
+        # If the robot is not connected, try reconnecting
+        if not self.is_connected():
+            successfully_reconnected = self.reconnect()
+            if not successfully_reconnected:
+                rospy.logwarn("Robot disconnected, it was not possible to get "
+                              "the robot outputs")
+                return [-1 for _ in range(8)]
+        outputs = []
+        for i in range(1, 9):
+            outputs.append(self.HRSDKLib.get_robot_output(c_int(self.robot_id),
+                                                           c_int(i)))
+        return outputs
+    def Get_current_robot_inputs(self):
+        # type: () -> (list[int])
+        """Get Robot current digital inputs.
+
+        :returns
+            inputs: list of the value of the digital inputs
+            (1 if on 0 if off)
+        """
+        # If the robot is not connected, try reconnecting
+        if not self.is_connected():
+            successfully_reconnected = self.reconnect()
+            if not successfully_reconnected:
+                rospy.logwarn("Robot disconnected, it was not possible to get "
+                              "the digital inputs")
+                return [-1 for _ in range(8)]
+        inputs = []
+        for i in range(1, 9):
+            inputs.append(self.HRSDKLib.get_robot_input(c_int(self.robot_id),
+                                                          c_int(i)))
+        return inputs

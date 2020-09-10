@@ -5,9 +5,17 @@ import time
 import threading
 import argparse
 import numpy as np
+import math
+import enum
+import time
+from std_msgs.msg import Int32MultiArray
 import os
+# yolo v4 import
+#from BoundingBoxes.msg import BoundingBox
+#from BoundingBoxes.msg import BoundingBoxes
+#ROS message sent format
 from std_msgs.msg import String
-import rospy
+#Hiwin arm api class
 from control_node import HiwinRobotInterface
 
 DEBUG = True  # Set True to show debug log, False to hide it.
@@ -44,6 +52,39 @@ class pos():
         self.pitch = -90
         self.roll = 0
         self.yaw = 0
+
+class bounding_boxes():
+    def __init__(self,probability,xmin,ymin,xmax,ymax,id_name,Class_name):
+        self.probability = probability
+        self.xmin = xmin
+        self.ymin = ymin
+        self.xmax = xmax
+        self.ymax = ymax
+        self.id_name = str(id_name)
+        self.Class_name = str(Class_name)
+
+boxes = bounding_boxes(0,0,0,0,0,0,0)
+# YOLO V4 input
+def Yolo_callback(data):
+    global obj_num
+    #global probability,xmin,ymin,xmax,ymax,id_name,Class_name
+    obj_num = len((data.bounding_boxes))
+    if obj_num == 0:
+            print("No Object Found!")
+            switch_flag == 1
+            print("change method to Realsense!")
+    else:
+        i = 0
+        switch_flag = 1
+        while switch_flag == 1:
+            boxes.probability = data.bounding_boxes[i].probability
+            boxes.xmin = data.bounding_boxes[i].xmin
+            boxes.ymin = data.bounding_boxes[i].ymin
+            boxes.xmax = data.bounding_boxes[i].xmax
+            boxes.ymax = data.bounding_boxes[i].ymax
+            boxes.id_name = data.bounding_boxes[i].id
+            boxes.Class_name = data.bounding_boxes[i].Class
+
 def test_task():
     global ItemNo
     Arm_state = robot_ctr.get_robot_motion_state()
@@ -107,6 +148,10 @@ if __name__ == '__main__':
 
     robot_ctr = HiwinRobotInterface(robot_ip=robot_ip, connection_level=control_mode,name=robot_name)
     robot_ctr.connect()
+
+    rate = rospy.Rate(10) # 10hz
+    #rospy.Subscriber("/darknet_ros/bounding_boxes",BoundingBoxes,Yolo_callback)
+ 
     try:
         if robot_ctr.is_connected():
             robot_ctr.Set_operation_mode(0)
@@ -121,10 +166,18 @@ if __name__ == '__main__':
             robot_ctr.Set_operation_mode(1)
             robot_ctr.Set_override_ratio(10)
             robot_ctr.Set_acc_dec_ratio(100)
-        
+
+            robot_ctr.Set_robot_output(2,False)
+            robot_ctr.Set_robot_output(3,False)
+            robot_ctr.Set_robot_output(4,False)
         while(1):
-            test_task()
-            
+            #test_task()
+            #print("boxes:",boxes)
+            #robot_ctr.Set_digital_input(2,1)
+            robot_outputs_state = robot_ctr.Get_current_robot_outputs()
+            robot_inputs_state = robot_ctr.Get_current_robot_inputs()
+            #print("robot outputs state:",robot_outputs_state)
+            print("robot inputs state:",robot_inputs_state)
         rospy.spin()
     except KeyboardInterrupt:
         robot_ctr.Set_motor_state(0)
