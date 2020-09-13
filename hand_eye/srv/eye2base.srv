@@ -1,5 +1,5 @@
-float[]   ini_pose
+float64[]   ini_pose
 
 ---
 
-float[]   tar_pose
+float64[]   tar_pose

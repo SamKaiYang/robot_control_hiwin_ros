@@ -1,3 +1,3 @@
-float[]  curr_pose
-float[]  tool_coor
-float[]  base_coor
+float64[]  curr_pose
+float64[]  tool_coor
+float64[]  base_coor
