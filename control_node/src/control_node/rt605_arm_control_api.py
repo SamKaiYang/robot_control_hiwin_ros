@@ -98,13 +98,13 @@ class HiwinRobotInterface(object):
         self.__pub_threads.start()
 
     def __pub_robot_info(self):
-        rate = rospy.Rate(5)
+        rate = rospy.Rate(10)
         while not rospy.is_shutdown():
             try:
                 msg = robot_info()
                 msg.curr_pose = self.Get_current_position()
-                msg.tool_coor = self.Get_tool_data()
-                # msg.base_coor = self.Get_base_data()
+                _, msg.tool_coor = self.Get_tool_data()
+                # _, msg.base_coor = self.Get_base_data()
                 self.__robot_info_pub.publish(msg)
                 rate.sleep()
             except KeyboardInterrupt:
