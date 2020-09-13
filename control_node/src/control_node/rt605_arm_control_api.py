@@ -9,6 +9,8 @@ import datetime
 from ctypes import *
 import rospy
 from enum import Enum
+import threading
+from control_node.msg import robot_info
 
 # Init the path to the Hiwin Robot's SDK .dll file
 CURRENT_FILE_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
@@ -85,6 +87,31 @@ class HiwinRobotInterface(object):
                                   POINTER(c_uint16), c_int)
         self.callback = callback_type(callback_function)
         self.reconnecting = False  # Used to know if we are trying to reconnect
+
+        self.__pub_threads = threading.Thread(target=self.__pub_robot_info)
+        self.__robot_info_pub = rospy.Publisher(
+            'robot/curr_info',
+            robot_info,
+            queue_size=1
+        )
+        self.__pub_threads.setDaemon(True)
+        self.__pub_threads.start()
+
+    def __pub_robot_info(self):
+        rate = rospy.Rate(5)
+        while not rospy.is_shutdown():
+            try:
+                msg = robot_info()
+                msg.curr_pose = self.Get_current_position()
+                msg.tool_coor = self.Get_tool_data()
+                # msg.base_coor = self.Get_base_data()
+                self.__robot_info_pub.publish(msg)
+                rate.sleep()
+            except KeyboardInterrupt:
+                break
+
+
+
     def connect(self):  # type: () -> bool
         """Connect to the Hiwin robot
 
@@ -304,8 +331,10 @@ class HiwinRobotInterface(object):
     def Get_current_position(self):
         Current_Pos = (c_double * 6)()
         result = self.HRSDKLib.get_current_position(c_int(self.robot_id),Current_Pos)
-        #Current_Pos = float(Current_Pos) 
-        return [float(value) for value in (Current_Pos)]
+        #Current_Pos = float(Current_Pos)
+        value = [float(value) for value in (Current_Pos)]
+        value[0:3] = [ele/10 for ele in value[0:3]]
+        return value
 
 #------set system variable
     #set all arm speed
@@ -366,7 +395,7 @@ class HiwinRobotInterface(object):
         self.HRSDKLib.set_base_number(c_int(self.robot_id),c_int(basenum))
 
     def Get_base_number(self):
-        self.HRSDKLib.get_base_number(c_int(self.robot_id))
+        return self.HRSDKLib.get_base_number(c_int(self.robot_id))
 
     # set robot base 
     def Define_base(self,basenum,Coor):
@@ -375,17 +404,20 @@ class HiwinRobotInterface(object):
         return result
 
     # get robot base
-    def Get_base_data(self,basenum):
+    def Get_base_data(self):
         Coor = (c_double * 6)()
+        basenum = self.Get_base_number()
         result = self.HRSDKLib.get_base_data(c_int(self.robot_id),c_int(basenum),Coor)
-        return result == 0, [float(value) for value in (Coor)]
+        value = [float(value) for value in (Coor)]
+        value[0:3] = [ele/10 for ele in value[0:3]]
+        return result == 0, value
 
     # set tool number
     def Set_tool_number(self,toolnum):
         self.HRSDKLib.set_tool_number(c_int(self.robot_id),c_int(toolnum))
 
     # get tool number
-    def Get_tool_number(self,toolnum):
+    def Get_tool_number(self):
         return self.HRSDKLib.get_tool_number(c_int(self.robot_id))
 
     def Define_tool(self,toolnum,Coor):
@@ -393,10 +425,13 @@ class HiwinRobotInterface(object):
         result = self.HRSDKLib.define_tool(c_int(self.robot_id),c_int(toolnum),Coor_ctype)
         return result
 
-    def Get_tool_data(self,toolnum):
+    def Get_tool_data(self):
         Coor = (c_double * 6)()
+        toolnum = self.Get_tool_number()
         result = self.HRSDKLib.get_tool_data(c_int(self.robot_id),c_int(toolnum),Coor)
-        return result == 0, [float(value) for value in (Coor)]
+        value = [float(value) for value in (Coor)]
+        value[0:3] = [ele/10 for ele in value[0:3]]
+        return result == 0, value
 
 #  # Servo on: 1   Servo off: 0
     def Set_motor_state(self, state):
