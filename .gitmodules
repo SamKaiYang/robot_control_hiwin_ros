@@ -1,0 +1,3 @@
+[submodule "src"]
+	path = src
+	url = https://github.com/tku-iarc/2020_solomon.git
