@@ -6,7 +6,7 @@
 
   <param name ="manipulator_ip_address" value="$(arg manipulator_ip)"/>
 
-  <node name="$(arg manipulator_name)_hiwin_robot_driver" pkg="pushpin_mission" type="hiwin_arm_test.py"
+  <node name="$(arg manipulator_name)_hiwin_robot_driver" pkg="pushpin_mission" type="pick_and_place.py"
         args="--robot_ip $(arg manipulator_ip) --robot_name $(arg manipulator_name) --log_level $(arg log_level) --control_mode $(arg control_mode)" output="screen">
   </node>
 </launch>

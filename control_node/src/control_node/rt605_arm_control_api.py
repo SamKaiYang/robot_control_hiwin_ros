@@ -304,7 +304,8 @@ class HiwinRobotInterface(object):
     def Get_current_position(self):
         Current_Pos = (c_double * 6)()
         result = self.HRSDKLib.get_current_position(c_int(self.robot_id),Current_Pos)
-        return result == 0, [float(value) for value in (Current_Pos)]
+        #Current_Pos = float(Current_Pos) 
+        return [float(value) for value in (Current_Pos)]
 
 #------set system variable
     #set all arm speed
@@ -465,7 +466,7 @@ class HiwinRobotInterface(object):
                                                            c_int(i)))
         return outputs
 
-    def Set_digital_input(self,index,value):
+    def Set_digital_output(self,index,value):
         if not self.is_connected():
             successfully_reconnected = self.reconnect()
             if not successfully_reconnected:
@@ -473,6 +474,7 @@ class HiwinRobotInterface(object):
                               "the digital outputs")
         self.HRSDKLib.set_digital_output(c_int(self.robot_id), c_int(index),c_bool(value))
 
+    
     def Set_robot_output(self,index,value):
         if not self.is_connected():
             successfully_reconnected = self.reconnect()

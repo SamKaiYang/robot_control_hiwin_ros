@@ -11,6 +11,8 @@ import time
 from std_msgs.msg import Int32MultiArray
 import os
 # yolo v4 import
+#from Boundingboxes.msg import BoundingBox
+#from Boundingboxes.msg import BoundingBoxes
 from pushpin_mission.msg import ROI
 #ROS message sent format
 from std_msgs.msg import String
@@ -70,10 +72,6 @@ def Yolo_callback(data):
         print("center_x:", center_x)
         print("center_y:", center_y)
 
-## pick down to box base [0 ,45.4, -40.7, -180,0,90]
-## pick up to box above [0 ,45.4, -6.4, -180,0,90]
-## place up target [39.4 ,1.09, -6.4, -180,0,90]
-## place down target [39.4 ,1.09, -30.6, -180,0,90]
 def test_task():
     global ItemNo
     Arm_state = robot_ctr.get_robot_motion_state()
@@ -145,15 +143,15 @@ if __name__ == '__main__':
         if robot_ctr.is_connected():
             robot_ctr.Set_operation_mode(0)
             # set tool & base coor
-            tool_coor = [0,0,180,0,0,0]
-            base_coor = [0,0,0,0,0,0]
-            robot_ctr.Set_base_number(1)
-            base_result = robot_ctr.Define_base(1,base_coor)
+            tool_coor = [0,0,180,180,0,0]
+            #base_coor = [0,0,0,0,0,0]
+            robot_ctr.Set_base_number(31)
+            #base_result = robot_ctr.Define_base(1,base_coor)
             robot_ctr.Set_tool_number(1)
             tool_result = robot_ctr.Define_tool(1,tool_coor)
 
             robot_ctr.Set_operation_mode(1)
-            robot_ctr.Set_override_ratio(10)
+            robot_ctr.Set_override_ratio(3)
             robot_ctr.Set_acc_dec_ratio(100)
 
             # robot_ctr.Set_robot_output(2,False)
@@ -171,6 +169,9 @@ if __name__ == '__main__':
             digital_output_state = robot_ctr.Get_current_digital_outputs()
             #print("robot outputs state:",robot_outputs_state)
             #print("robot inputs state:",robot_inputs_state)
+
+            #positon = [0.0,0.0,10.0,-180,0,0]
+            #robot_ctr.Step_AbsPTPCmd(positon)
 
             #pose = robot_ctr.Get_current_position()
             #print("pose:",pose)
