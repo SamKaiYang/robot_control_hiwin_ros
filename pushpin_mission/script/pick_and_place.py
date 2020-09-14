@@ -23,19 +23,34 @@ positon = [0.0,36.8,11.35,-180,0,90]
 Goal = [0.0,36.8,11.35,-180,0,90]
 Current_pos = [0.0,0.0,0.0,0.0,0.0,0.0]
 
-## pick down to box base [0 ,45.4, -40.7, -180,0,90]
-## pick up to box above [0 ,45.4, -6.4, -180,0,90]
-## place up target [39.4 ,1.09, -6.4, -180,0,90]
-## place down target [39.4 ,1.09, -30.6, -180,0,90]
+##-----Mission 參數
+GetInfoFlag = False
+ExecuteFlag = False
+GetKeyFlag = False
+MotionSerialKey = []
+MissionType_Flag = 0
+MotionStep = 0
+
+arm_move_times = 1
+
 
 class Arm_cmd(enum.IntEnum):
-    down_box_base = 1
-    up_box_above = 2
-    place_target = 3
-    place_down_target = 4
-    
- 
-
+    MoveToObj_Pick = 1
+    MoveToTarget_Place = 2
+    Absort_ON = 3
+    Absort_OFF = 4
+    MoveToObj_PickUp = 5
+    MoveToTarget_PlaceUp = 6
+    Arm_Stop = 7
+    # down_box_base = 3
+    # up_box_above = 4
+    # place_target = 5
+    # place_down_target = 6
+class MissionType(enum.IntEnum):
+    Get_Img = 0
+    Pick = 1
+    Place = 2
+    Mission_End = 3
 ##-----------switch define------------##
 class switch(object):
     def __init__(self, value):
@@ -82,12 +97,44 @@ def Yolo_callback(data):
         center_y = data.y
         print("center_x:", center_x)
         print("center_y:", center_y)
+##------------------yolo_v3 stra.py-----------------
+# def get_obj_info_cb(data):
+#     global object_name,min_xy,max_xy,obj_num,score,pic_times,ball_mid,SpecifyBall_mid,CueBalll_mid
+#     global GetInfoFlag
+#     print("\n========== Detected object number = " + str(len(data.ROI_list)) + " ========== ")
+#     for obj_num in range(len(data.ROI_list)):
+#         object_name = data.ROI_list[obj_num].object_name
+#         score       = data.ROI_list[obj_num].score
+#         min_xy = np.array([data.ROI_list[obj_num].min_x, data.ROI_list[obj_num].min_y])
+#         max_xy = np.array([data.ROI_list[obj_num].Max_x, data.ROI_list[obj_num].Max_y])
 
-## pick down to box base [0 ,45.4, -40.7, -180,0,90]
-## pick up to box above [0 ,45.4, -6.4, -180,0,90]
-## place up target [39.4 ,1.09, -6.4, -180,0,90]
-## place down target [39.4 ,1.09, -30.6, -180,0,90]
+#         if(obj_num!=0):
+#             print("\n")
+#         print("----- object_" + str(obj_num) + " ----- ")
+#         print("object_name = " + str(object_name))
+#         print("score = " + str(score))
+#         print("min_xy = [ " +  str(min_xy) +  " ]" )
+#         print("max_xy = [ " +  str(max_xy) +  " ]" )
 
+#         print("mid_xy = ["+str((min_xy+max_xy)/2)+"]")
+#     ##-- yolov3 info
+#     ## for 取 10張 信心值超過70%
+#     ## 取出位置取平均
+
+#         if  str(len(data.ROI_list)) == 2 and score >= 70:
+#             pic_times+=1
+#             if object_name == "Specify":
+#                 SpecifyBall_mid = np.array([SpecifyBall_mid + (min_xy+max_xy)/2])
+#             if object_name == "Nine":
+#                 CueBalll_mid = np.array([CueBalll_mid[1] +  (min_xy+max_xy)/2])
+#             if pic_times == 10:
+#                 SpecifyBall_mid = SpecifyBall_mid/10
+#                 CueBalll_mid = CueBalll_mid/10
+#                 ##image to real
+#                 # SpecifyBall_mid = SpecifyBall_mid
+#                 # CueBalll_mid = CueBalll_mid
+#                 GetInfoFlag = True
+#     pic_times+=1
 ##-------------strategy start ------------
 def Mission_Trigger():
     if GetInfoFlag == True and GetKeyFlag == False and ExecuteFlag == False:
@@ -99,7 +146,7 @@ def Mission_Trigger():
 def GetInfo_Mission():
     global GetInfoFlag,GetKeyFlag,ExecuteFlag
 
-    #Billiards_Calculation()
+    #Obj_Data_Calculation()
 
     GetInfoFlag = False
     GetKeyFlag = True
@@ -117,59 +164,57 @@ def GetKey_Mission():
 
 def Get_MissionType():
     global MissionType_Flag,CurrentMissionType
-    for case in switch(MissionType_Flag): #傳送指令給socket選擇手臂動作
+    for case in switch(MissionType_Flag): #傳送指令給手臂動作
         if case(0):
-            Type = MissionType.PushBall
+            Type = MissionType.Pick
             MissionType_Flag +=1
             break
         if case(1):
-            Type = MissionType.Pushback
+            Type = MissionType.Place
             MissionType_Flag -=1
             break
     CurrentMissionType = Type
     return Type
+
 def MissionItem(ItemNo):
     global MotionKey
-    Key_PushBallCommand = [\
-        ArmMotionCommand.Arm_MoveToTargetUpside,\
-        ArmMotionCommand.Arm_LineDown,\
-        ArmMotionCommand.Arm_PushBall,\
-        ArmMotionCommand.Arm_LineUp,\
-        ArmMotionCommand.Arm_Stop,\
+    Key_PickCommand = [\
+        Arm_cmd.MoveToObj_Pick,\
+        Arm_cmd.Absort_ON,\
+        Arm_Stop,\
         ]
-    Key_PushBackCommand = [\
-        ArmMotionCommand.Arm_MoveVision,\
-        ArmMotionCommand.Arm_Stop,\
-        ArmMotionCommand.Arm_StopPush,\
+    Key_PlaceCommand = [\
+        Arm_cmd.MoveToTarget_Place,\
+        Arm_cmd.Absort_OFF,\
+        Arm_Stop,\
         ]
-    for case in switch(ItemNo): #傳送指令給socket選擇手臂動作
-        if case(MissionType.PushBall):
-            MotionKey = Key_PushBallCommand
+    for case in switch(ItemNo): 
+        if case(MissionType.Pick):
+            MotionKey = Key_PickCommand
             break
-        if case(MissionType.Pushback):
-            MotionKey = Key_PushBackCommand
+        if case(MissionType.Place):
+            MotionKey = Key_PlaceCommand
             break
     return MotionKey
 
 def Execute_Mission():
     global GetInfoFlag,GetKeyFlag,ExecuteFlag,MotionKey,MotionStep,MotionSerialKey,MissionEndFlag,CurrentMissionType
-    global strategy_flag,Arm_state_flag
-    if Arm_state_flag == 0 and strategy_flag == 1:
-        strategy_flag = 0
-        if MotionKey[MotionStep] == ArmMotionCommand.Arm_Stop:
+    Arm_state = robot_ctr.get_robot_motion_state() ## get arm state
+    if Arm_state == 1:  
+        if MotionKey[MotionStep] == Arm_cmd.Arm_Stop:
             if MissionEndFlag == True:
                 CurrentMissionType = MissionType.Mission_End
                 GetInfoFlag = False
                 GetKeyFlag = False
                 ExecuteFlag = False
                 print("Mission_End")
-            elif CurrentMissionType == MissionType.PushBall:
+            elif CurrentMissionType == MissionType.Pick:
                 GetInfoFlag = False
                 GetKeyFlag = True
                 ExecuteFlag = False
                 MotionStep = 0
-                print("PushBall")
-            else:
+                print("Pick")
+            elif CurrentMissionType == MissionType.Get_Img:
                 GetInfoFlag = True
                 GetKeyFlag = False
                 ExecuteFlag = False
@@ -177,106 +222,68 @@ def Execute_Mission():
         else:
             MotionItem(MotionSerialKey[MotionStep])
             MotionStep += 1
+## pick down to box base [0 ,45.4, -40.7, -180,0,90]
+## pick up to box above [0 ,45.4, -6.4, -180,0,90]
+## place up target [39.4 ,1.09, -6.4, -180,0,90]
+## place down target [39.4 ,1.09, -30.6, -180,0,90]
 def MotionItem(ItemNo):
-    global angle_SubCue,SpeedValue,PushFlag,LinePtpFlag,MissionEndFlag
-    SpeedValue = 5
+    global SpeedValue,PushFlag,MissionEndFlag,CurrentMissionType
+    SpeedValue = 5 # test speed 
     for case in switch(ItemNo): #傳送指令給socket選擇手臂動作
-        if case(ArmMotionCommand.Arm_Stop):
-            MoveFlag = False
+        if case(Arm_cmd.Arm_Stop):
+            
             print("Arm_Stop")
             break
-        if case(ArmMotionCommand.Arm_StopPush):
-            MoveFlag = False
-            PushFlag = True #重新掃描物件
-            print("Arm_StopPush")
+        if case(Arm_cmd.MoveToObj_Pick):
+            positon = [0 ,45.4, -6.4, -180,0,90]
+            robot_ctr.Step_AbsPTPCmd(positon)
+            positon = [0 ,45.4, -40.7, -180,0,90]
+            robot_ctr.Step_AbsLine_PosCmd(positon,1,10) ## test
+            
+            print("MoveToObj_Pick")
             break
-        if case(ArmMotionCommand.Arm_MoveToTargetUpside):
-            pos.x = 10
-            pos.y = 36.8
-            pos.z = 11.35
-            pos.pitch = -90
-            pos.roll = 0
-            pos.yaw = 10
-            MoveFlag = True
-            LinePtpFlag = False
-            SpeedValue = 10
-            print("Arm_MoveToTargetUpside")
+        if case(Arm_cmd.Absort_ON):
+            robot_ctr.Set_digital_output(1,True)
+            print("Absort_ON")
             break
-        if case(ArmMotionCommand.Arm_LineUp):
-            pos.z = ObjAboveHeight
-            MoveFlag = True
-            LinePtpFlag = True
-            SpeedValue = 5
-            print("Arm_LineUp")
+        if case(Arm_cmd.MoveToObj_PickUp):
+            positon = [0 ,45.4, -6.4, -180,0,90]
+            robot_ctr.Step_AbsLine_PosCmd(positon,1,10) ## test
+            print("MoveToObj_Pick")
             break
-        if case(ArmMotionCommand.Arm_LineDown):
-            pos.z = PushBallHeight
-            MoveFlag = True
-            LinePtpFlag = True
-            SpeedValue = 5
-            print("Arm_LineDown")
+        if case(Arm_cmd.MoveToTarget_Place):
+            #SpeedValue = 10
+            positon = [39.4 ,1.09, -6.4, -180,0,90]
+            robot_ctr.Step_AbsPTPCmd(positon)
+            positon = [39.4 ,1.09, -30.6, -180,0,90]
+            robot_ctr.Step_AbsLine_PosCmd(positon,1,10) ## test
+
+            print("MoveToTarget_Place")
             break
-        if case(ArmMotionCommand.Arm_PushBall):
-            pos.x = -10
-            pos.y = 36.8
-            pos.z = 11.35
-            pos.pitch = -90
-            pos.roll = 0
-            pos.yaw = -10
-            SpeedValue = 10   ##待測試up
-            MoveFlag = True
-            LinePtpFlag = False
-            print("Arm_PushBall")
+        if case(Arm_cmd.Absort_OFF):
+            robot_ctr.Set_digital_output(1,False)
+            print("Absort_OFF")
             break
-        if case(ArmMotionCommand.Arm_MoveVision):
-            pos.x = 0
-            pos.y = 36.8
-            pos.z = 11.35
-            pos.pitch = -90
-            pos.roll = 0
-            pos.yaw = 0
-            SpeedValue = 10
-            MoveFlag = True
-            LinePtpFlag = False
+        if case(Arm_cmd.MoveToTarget_PlaceUp):
+            #SpeedValue = 10
+            positon = [39.4 ,1.09, -6.4, -180,0,90]
+            robot_ctr.Step_AbsLine_PosCmd(positon,1,10) ## test
+
+            print("MoveToTarget_Place")
+            break
+        if case(Arm_cmd.Get_obj):
+            CurrentMissionType = MissionType.Get_Img
             ##任務結束旗標
             MissionEndFlag = True
-            print("Arm_MoveVision")
+            robot_ctr.Go_home()
+            print("MissionEnd")
             break
-        if case(ArmMotionCommand.Arm_MoveFowardDown):
-            pos.x = 0
-            pos.y = 36.8
-            pos.z = 11.35
-            pos.pitch = -90
-            pos.roll = 0
-            pos.yaw = 0
-            MoveFlag = True
-            LinePtpFlag = False
-            print("Arm_MoveFowardDown")
-            break
-        if case(): # default, could also just omit condition or 'if True'
+        if case(): 
             print ("something else!")
-            # No need to break here, it'll stop anyway
-    if MoveFlag == True:
-        if LinePtpFlag == False:
-            print('x: ',pos.x,' y: ',pos.y,' z: ',pos.z,' pitch: ',pos.pitch,' roll: ',pos.roll,' yaw: ',pos.yaw)
-            strategy_client_Speed_Mode(0)
-            strategy_client_Arm_Mode(4,1,0,SpeedValue,2)#action,ra,grip,vel,both
-            #strategy_client_Arm_Mode(2,1,0,SpeedValue,2)#action,ra,grip,vel,both
-            #strategy_client_pos_move(pos.x,pos.y,pos.z,pos.pitch,pos.roll,pos.yaw)
-        elif LinePtpFlag == True:
-            #strategy_client_Arm_Mode(0,1,0,40,2)#action,ra,grip,vel,both
-            print('x: ',pos.x,' y: ',pos.y,' z: ',pos.z,' pitch: ',pos.pitch,' roll: ',pos.roll,' yaw: ',pos.yaw)
-            strategy_client_Speed_Mode(1)
-            strategy_client_Arm_Mode(4,1,0,SpeedValue,2)#action,ra,grip,vel,both
-            #strategy_client_Arm_Mode(3,1,0,SpeedValue,2)#action,ra,grip,vel,both
-            #strategy_client_pos_move(pos.x,pos.y,pos.z,pos.pitch,pos.roll,pos.yaw)
-    #action: ptp line
-    #ra : abs rel
-    #grip 夾爪
-    #vel speed
-    #both : Ctrl_Mode
 ##-------------strategy end ------------
 
+
+## test use
 def test_task():
     global ItemNo
     Arm_state = robot_ctr.get_robot_motion_state()
