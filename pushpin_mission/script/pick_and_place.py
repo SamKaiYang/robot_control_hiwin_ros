@@ -23,10 +23,11 @@ positon = [0.0,36.8,11.35,-180,0,90]
 Goal = [0.0,36.8,11.35,-180,0,90]
 Current_pos = [0.0,0.0,0.0,0.0,0.0,0.0]
 
-##-----Mission 參數
+##-----Mission dataset
 GetInfoFlag = False
 ExecuteFlag = False
 GetKeyFlag = False
+MissionEndFlag = False
 MotionSerialKey = []
 MissionType_Flag = 0
 MotionStep = 0
@@ -118,8 +119,7 @@ def Yolo_callback(data):
 
 #         print("mid_xy = ["+str((min_xy+max_xy)/2)+"]")
 #     ##-- yolov3 info
-#     ## for 取 10張 信心值超過70%
-#     ## 取出位置取平均
+
 
 #         if  str(len(data.ROI_list)) == 2 and score >= 70:
 #             pic_times+=1
@@ -164,7 +164,7 @@ def GetKey_Mission():
 
 def Get_MissionType():
     global MissionType_Flag,CurrentMissionType
-    for case in switch(MissionType_Flag): #傳送指令給手臂動作
+    for case in switch(MissionType_Flag):
         if case(0):
             Type = MissionType.Pick
             MissionType_Flag +=1
@@ -181,12 +181,14 @@ def MissionItem(ItemNo):
     Key_PickCommand = [\
         Arm_cmd.MoveToObj_Pick,\
         Arm_cmd.Absort_ON,\
-        Arm_Stop,\
+        Arm_cmd.MoveToObj_PickUp,\
+        Arm_cmd.Arm_Stop,\
         ]
     Key_PlaceCommand = [\
         Arm_cmd.MoveToTarget_Place,\
         Arm_cmd.Absort_OFF,\
-        Arm_Stop,\
+        Arm_cmd.MoveToTarget_PlaceUp,\
+        Arm_cmd.Arm_Stop,\
         ]
     for case in switch(ItemNo): 
         if case(MissionType.Pick):
@@ -214,6 +216,12 @@ def Execute_Mission():
                 ExecuteFlag = False
                 MotionStep = 0
                 print("Pick")
+            elif CurrentMissionType == MissionType.Place:
+                GetInfoFlag = False
+                GetKeyFlag = True
+                ExecuteFlag = False
+                MotionStep = 0
+                print("Pick")
             elif CurrentMissionType == MissionType.Get_Img:
                 GetInfoFlag = True
                 GetKeyFlag = False
@@ -228,8 +236,8 @@ def Execute_Mission():
 ## place down target [39.4 ,1.09, -30.6, -180,0,90]
 def MotionItem(ItemNo):
     global SpeedValue,PushFlag,MissionEndFlag,CurrentMissionType
-    SpeedValue = 5 # test speed 
-    for case in switch(ItemNo): #傳送指令給socket選擇手臂動作
+    robot_ctr.Set_override_ratio(5) # test speed 
+    for case in switch(ItemNo):
         if case(Arm_cmd.Arm_Stop):
             
             print("Arm_Stop")
@@ -273,7 +281,7 @@ def MotionItem(ItemNo):
             break
         if case(Arm_cmd.Get_obj):
             CurrentMissionType = MissionType.Get_Img
-            ##任務結束旗標
+            ##mission end flag
             MissionEndFlag = True
             robot_ctr.Go_home()
             print("MissionEnd")
@@ -368,7 +376,7 @@ if __name__ == '__main__':
             tool_result = robot_ctr.Define_tool(1,tool_coor)
 
             robot_ctr.Set_operation_mode(1)
-            robot_ctr.Set_override_ratio(10)
+            robot_ctr.Set_override_ratio(5)
             robot_ctr.Set_acc_dec_ratio(100)
 
             # robot_ctr.Set_robot_output(2,False)
@@ -394,7 +402,7 @@ if __name__ == '__main__':
             robot_outputs_state = robot_ctr.Get_current_robot_outputs()
             robot_inputs_state = robot_ctr.Get_current_robot_inputs()
             digital_output_state = robot_ctr.Get_current_digital_outputs()
-            
+
             #print("robot outputs state:",robot_outputs_state)
             #print("robot inputs state:",robot_inputs_state)
 
