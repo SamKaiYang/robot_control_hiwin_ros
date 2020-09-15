@@ -115,5 +115,3 @@ if __name__ == "__main__":
         strtage.Mission_Trigger()
         time.sleep(0.1)
 
-    for pose in poses:
-        print '{},'.format(pose)
