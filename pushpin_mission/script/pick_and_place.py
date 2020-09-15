@@ -13,15 +13,15 @@ from std_msgs.msg import Int32MultiArray
 import os
 # yolo v4 import
 from pushpin_mission.msg import ROI
-from pushpin_mission.msg import ROI.array
+from pushpin_mission.msg import ROI_array
 #ROS message sent format
 from std_msgs.msg import String
 #Hiwin arm api class
 from control_node import HiwinRobotInterface
 #pixel_z to base
-from hand_eye.srv import eye2base, eye2baseResponse
+from hand_eye.srv import eye2base, eye2baseRequest
 #avoidance
-from collision_avoidance.srv import collision_avoid, collision_avoidResponse
+from collision_avoidance.srv import collision_avoid, collision_avoidRequest
 
 DEBUG = True  # Set True to show debug log, False to hide it.
 ItemNo = 0
@@ -37,9 +37,11 @@ MissionEndFlag = False
 MotionSerialKey = []
 MissionType_Flag = 0
 MotionStep = 0
-
+CurrentMissionType = 0
 arm_move_times = 1
 
+###---pixel z to base data init
+camera_z = 42
 
 class Arm_cmd(enum.IntEnum):
     MoveToObj_Pick = 1
@@ -88,7 +90,7 @@ class bounding_boxes():
         self.id_name = str(id_name)
         self.Class_name = str(Class_name)
 
-boxes = bounding_boxes(0,0,0,0,0,0,0)
+boxes = bounding_boxes(0,0,0,0,0)
 # YOLO V4 input
 def Yolo_callback(data):
     global obj_num
@@ -96,33 +98,39 @@ def Yolo_callback(data):
     obj_num = len((data.ROI_list))
     if obj_num == 0:
         print("No Object Found!")
-        #switch_flag == 1
         print("change method to Realsense!")
     else:
-        for i in range(len(obj_num)):
+        for i in range(obj_num):
             boxes.probability = data.ROI_list[i].probability
-            if boxes.probability >=90:
+            if boxes.probability >=0.9:
                 boxes.x = data.ROI_list[i].x
                 boxes.y = data.ROI_list[i].y
                 boxes.id_name = data.ROI_list[i].id
-                boxes.Class_name = data.ROI_list[i].Class
-
+                boxes.Class_name = data.ROI_list[i].object_name
+                # print("boxes.x:",boxes.x)
+                # print("boxes.y",boxes.y)
+                # print("boxes.id_name",boxes.id_name)
+                # print("boxes.Class_name",boxes.Class_name)
                 ########test #####
                 Obj_Data_Calculation()
 ##-------------strategy start ------------
 def Obj_Data_Calculation():
-
-    trans_pixel_to_base = [boxes.x,boxes.y,camera_z] 
-    target_base = pixel_z_to_base_client(trans_pixel_to_base)
-    target_base_avoidance = base_avoidance_client(target_base)
-    print("trans_pixel_to_base:",trans_pixel_to_base)
+    baseRequest = eye2baseRequest()
+    baseRequest.ini_pose = [boxes.x,boxes.y,camera_z] 
+    target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
+    avoidRequest = collision_avoidRequest()
+    avoidRequest.ini_pose = [target_base[0],target_base[1],target_base[2],180,0,0] 
+    avoidRequest.limit = 1 # test
+    avoidRequest.dis = 10 # test 
+    target_base_avoidance = base_avoidance_client(avoidRequest)
+    # print("trans_pixel_to_base:",baseRequest.ini_pose)
     print("target_base:",target_base)
     print("target_base_avoidance:",target_base_avoidance)
 
 def pixel_z_to_base_client(pixel_to_base):
-    rospy.wait_for_service('robot/eye_trans2base')
+    rospy.wait_for_service('robot/pix2base')
     try:
-        pixel_z_to_base = rospy.ServiceProxy('robot/eye_trans2base', eye2base)
+        pixel_z_to_base = rospy.ServiceProxy('robot/pix2base', eye2base)
         resp1 = pixel_z_to_base(pixel_to_base)
         return resp1.tar_pose
     except rospy.ServiceException as e:
@@ -377,7 +385,8 @@ if __name__ == '__main__':
     robot_ctr.connect()
 
     rate = rospy.Rate(10) # 10hz
-    rospy.Subscriber("obj_position",ROI,Yolo_callback)
+    a = rospy.Subscriber("obj_position",ROI_array,Yolo_callback)
+    #print("ffffff")
     
     ## strategy trigger
     GetInfoFlag = True #Test no data
@@ -385,12 +394,12 @@ if __name__ == '__main__':
         if robot_ctr.is_connected():
             robot_ctr.Set_operation_mode(0)
             # set tool & base coor
-            tool_coor = [0,0,180,0,0,0]
-            base_coor = [0,0,0,0,0,0]
-            robot_ctr.Set_base_number(1)
-            base_result = robot_ctr.Define_base(1,base_coor)
-            robot_ctr.Set_tool_number(1)
-            tool_result = robot_ctr.Define_tool(1,tool_coor)
+            # tool_coor = [0,0,180,0,0,0]
+            # base_coor = [0,0,0,0,0,0]
+            robot_ctr.Set_base_number(5)
+            #base_result = robot_ctr.Define_base(1,base_coor)
+            robot_ctr.Set_tool_number(15)
+            #tool_result = robot_ctr.Define_tool(1,tool_coor)
 
             robot_ctr.Set_operation_mode(1)
             robot_ctr.Set_override_ratio(5)
@@ -402,29 +411,23 @@ if __name__ == '__main__':
             robot_ctr.Set_digital_output(1,False)
             robot_ctr.Set_digital_output(2,False)
             robot_ctr.Set_digital_output(3,False)
+
+            ### test take pic point
+            positon =  [16.8611, 22.7639, -1.5206, -179.725, 10.719, -89.858]
+            robot_ctr.Step_AbsPTPCmd(positon)
         while(1):
             
             ### mission test 0914
-            Mission_Trigger()
+            #Mission_Trigger()
             if CurrentMissionType == MissionType.Mission_End:
                 rospy.on_shutdown(myhook)
+
+            positon = [18.8792, 29.4714, -17.554, 180.0, -0.0, 0.0]
+            robot_ctr.Step_AbsPTPCmd(positon)
             ### mission test 0914
+            # pose = robot_ctr.Get_current_position()
+            # print("pose:",pose)
 
-
-            #test_task()
-
-            #print("boxes:",boxes)
-            #robot_ctr.Set_digital_input(2,1)
-
-            robot_outputs_state = robot_ctr.Get_current_robot_outputs()
-            robot_inputs_state = robot_ctr.Get_current_robot_inputs()
-            digital_output_state = robot_ctr.Get_current_digital_outputs()
-
-            #print("robot outputs state:",robot_outputs_state)
-            #print("robot inputs state:",robot_inputs_state)
-
-            #pose = robot_ctr.Get_current_position()
-            #print("pose:",pose)
         rospy.spin()
     except KeyboardInterrupt:
         robot_ctr.Set_motor_state(0)
