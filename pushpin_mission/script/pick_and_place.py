@@ -1,4 +1,5 @@
-
+#### ros cmd
+#roslaunch pushpin_mission pick_and_place.launch
 import rospy
 import sys
 import time
@@ -42,7 +43,8 @@ class Arm_cmd(enum.IntEnum):
     Absort_OFF = 4
     MoveToObj_PickUp = 5
     MoveToTarget_PlaceUp = 6
-    Arm_Stop = 7
+    Absort_Check = 7
+    Arm_Stop = 8
     # down_box_base = 3
     # up_box_above = 4
     # place_target = 5
@@ -181,6 +183,7 @@ def MissionItem(ItemNo):
     Key_PickCommand = [\
         Arm_cmd.MoveToObj_Pick,\
         Arm_cmd.Absort_ON,\
+        Arm_cmd.Absort_Check,\
         Arm_cmd.MoveToObj_PickUp,\
         Arm_cmd.Arm_Stop,\
         ]
@@ -229,13 +232,13 @@ def Execute_Mission():
                 MotionStep = 0
         else:
             MotionItem(MotionSerialKey[MotionStep])
-            MotionStep += 1
+            #MotionStep += 1
 ## pick down to box base [0 ,45.4, -40.7, -180,0,90]
 ## pick up to box above [0 ,45.4, -6.4, -180,0,90]
 ## place up target [39.4 ,1.09, -6.4, -180,0,90]
 ## place down target [39.4 ,1.09, -30.6, -180,0,90]
 def MotionItem(ItemNo):
-    global SpeedValue,PushFlag,MissionEndFlag,CurrentMissionType
+    global SpeedValue,PushFlag,MissionEndFlag,CurrentMissionType,MotionStep
     robot_ctr.Set_override_ratio(5) # test speed 
     for case in switch(ItemNo):
         if case(Arm_cmd.Arm_Stop):
@@ -245,39 +248,51 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.MoveToObj_Pick):
             positon = [0 ,45.4, -6.4, -180,0,90]
             robot_ctr.Step_AbsPTPCmd(positon)
-            positon = [0 ,45.4, -40.7, -180,0,90]
+            positon = [0 ,45.4, -30.7, -180,0,90]
             robot_ctr.Step_AbsLine_PosCmd(positon,1,10) ## test
-            
             print("MoveToObj_Pick")
+            MotionStep += 1
             break
         if case(Arm_cmd.Absort_ON):
             robot_ctr.Set_digital_output(1,True)
             print("Absort_ON")
+            MotionStep += 1
+            break
+        if case(Arm_cmd.Absort_Check):
+            robot_inputs_state = robot_ctr.Get_current_robot_inputs()
+            if robot_inputs_state[0] == True:
+                print("Absort success") 
+                MotionStep += 1
+            else:
+                print("Absort fail")
+                #MotionStep += 1 # tmp
             break
         if case(Arm_cmd.MoveToObj_PickUp):
             positon = [0 ,45.4, -6.4, -180,0,90]
             robot_ctr.Step_AbsLine_PosCmd(positon,1,10) ## test
             print("MoveToObj_Pick")
+            MotionStep += 1
             break
         if case(Arm_cmd.MoveToTarget_Place):
             #SpeedValue = 10
             positon = [39.4 ,1.09, -6.4, -180,0,90]
             robot_ctr.Step_AbsPTPCmd(positon)
-            positon = [39.4 ,1.09, -30.6, -180,0,90]
-            robot_ctr.Step_AbsLine_PosCmd(positon,1,10) ## test
-
+            #positon = [39.4 ,1.09, -30.6, -180,0,90]
+            #robot_ctr.Step_AbsLine_PosCmd(positon,1,10) ## test
             print("MoveToTarget_Place")
+            MotionStep += 1
             break
         if case(Arm_cmd.Absort_OFF):
             robot_ctr.Set_digital_output(1,False)
             print("Absort_OFF")
+            MotionStep += 1
             break
         if case(Arm_cmd.MoveToTarget_PlaceUp):
             #SpeedValue = 10
             positon = [39.4 ,1.09, -6.4, -180,0,90]
             robot_ctr.Step_AbsLine_PosCmd(positon,1,10) ## test
-
             print("MoveToTarget_Place")
+            MotionStep += 1
             break
         if case(Arm_cmd.Get_obj):
             CurrentMissionType = MissionType.Get_Img
@@ -285,6 +300,7 @@ def MotionItem(ItemNo):
             MissionEndFlag = True
             robot_ctr.Go_home()
             print("MissionEnd")
+            MotionStep += 1
             break
         if case(): 
             print ("something else!")
