@@ -429,4 +429,3 @@ if __name__ == '__main__':
         robot_ctr.Set_motor_state(0)
         robot_ctr.close()
         pass
-
