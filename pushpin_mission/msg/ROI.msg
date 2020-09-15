@@ -1,3 +1,5 @@
+float64 probability
 string object_name
-int32 x
-int32 y
+int16 id
+int64 x
+int64 y

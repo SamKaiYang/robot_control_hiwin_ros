@@ -13,10 +13,15 @@ from std_msgs.msg import Int32MultiArray
 import os
 # yolo v4 import
 from pushpin_mission.msg import ROI
+from pushpin_mission.msg import ROI.array
 #ROS message sent format
 from std_msgs.msg import String
 #Hiwin arm api class
 from control_node import HiwinRobotInterface
+#pixel_z to base
+from hand_eye.srv import eye2base, eye2baseResponse
+#avoidance
+from collision_avoidance.srv import collision_avoid, collision_avoidResponse
 
 DEBUG = True  # Set True to show debug log, False to hide it.
 ItemNo = 0
@@ -76,12 +81,10 @@ class switch(object):
             return False
 
 class bounding_boxes():
-    def __init__(self,probability,xmin,ymin,xmax,ymax,id_name,Class_name):
+    def __init__(self,probability,x,y,id_name,Class_name):
         self.probability = probability
-        self.xmin = xmin
-        self.ymin = ymin
-        self.xmax = xmax
-        self.ymax = ymax
+        self.xmin = x
+        self.ymin = y
         self.id_name = str(id_name)
         self.Class_name = str(Class_name)
 
@@ -90,54 +93,52 @@ boxes = bounding_boxes(0,0,0,0,0,0,0)
 def Yolo_callback(data):
     global obj_num
     #global probability,xmin,ymin,xmax,ymax,id_name,Class_name
-    obj_num = len((data.object_name))
+    obj_num = len((data.ROI_list))
     if obj_num == 0:
         print("No Object Found!")
-        switch_flag == 1
+        #switch_flag == 1
         print("change method to Realsense!")
     else:
-        center_x = data.x
-        center_y = data.y
-        print("center_x:", center_x)
-        print("center_y:", center_y)
-##------------------yolo_v3 stra.py-----------------
-# def get_obj_info_cb(data):
-#     global object_name,min_xy,max_xy,obj_num,score,pic_times,ball_mid,SpecifyBall_mid,CueBalll_mid
-#     global GetInfoFlag
-#     print("\n========== Detected object number = " + str(len(data.ROI_list)) + " ========== ")
-#     for obj_num in range(len(data.ROI_list)):
-#         object_name = data.ROI_list[obj_num].object_name
-#         score       = data.ROI_list[obj_num].score
-#         min_xy = np.array([data.ROI_list[obj_num].min_x, data.ROI_list[obj_num].min_y])
-#         max_xy = np.array([data.ROI_list[obj_num].Max_x, data.ROI_list[obj_num].Max_y])
+        for i in range(len(obj_num)):
+            boxes.probability = data.ROI_list[i].probability
+            if boxes.probability >=90:
+                boxes.x = data.ROI_list[i].x
+                boxes.y = data.ROI_list[i].y
+                boxes.id_name = data.ROI_list[i].id
+                boxes.Class_name = data.ROI_list[i].Class
 
-#         if(obj_num!=0):
-#             print("\n")
-#         print("----- object_" + str(obj_num) + " ----- ")
-#         print("object_name = " + str(object_name))
-#         print("score = " + str(score))
-#         print("min_xy = [ " +  str(min_xy) +  " ]" )
-#         print("max_xy = [ " +  str(max_xy) +  " ]" )
-
-#         print("mid_xy = ["+str((min_xy+max_xy)/2)+"]")
-#     ##-- yolov3 info
-
-
-#         if  str(len(data.ROI_list)) == 2 and score >= 70:
-#             pic_times+=1
-#             if object_name == "Specify":
-#                 SpecifyBall_mid = np.array([SpecifyBall_mid + (min_xy+max_xy)/2])
-#             if object_name == "Nine":
-#                 CueBalll_mid = np.array([CueBalll_mid[1] +  (min_xy+max_xy)/2])
-#             if pic_times == 10:
-#                 SpecifyBall_mid = SpecifyBall_mid/10
-#                 CueBalll_mid = CueBalll_mid/10
-#                 ##image to real
-#                 # SpecifyBall_mid = SpecifyBall_mid
-#                 # CueBalll_mid = CueBalll_mid
-#                 GetInfoFlag = True
-#     pic_times+=1
+                ########test #####
+                Obj_Data_Calculation()
 ##-------------strategy start ------------
+def Obj_Data_Calculation():
+
+    trans_pixel_to_base = [boxes.x,boxes.y,camera_z] 
+    target_base = pixel_z_to_base_client(trans_pixel_to_base)
+    target_base_avoidance = base_avoidance_client(target_base)
+    print("trans_pixel_to_base:",trans_pixel_to_base)
+    print("target_base:",target_base)
+    print("target_base_avoidance:",target_base_avoidance)
+
+def pixel_z_to_base_client(pixel_to_base):
+    rospy.wait_for_service('robot/eye_trans2base')
+    try:
+        pixel_z_to_base = rospy.ServiceProxy('robot/eye_trans2base', eye2base)
+        resp1 = pixel_z_to_base(pixel_to_base)
+        return resp1.tar_pose
+    except rospy.ServiceException as e:
+        print("Service call failed: %s"%e)
+
+def base_avoidance_client(target_base_to_avoidance):
+    rospy.wait_for_service('robot/easy_CA')
+    try:
+        base_to_avoidance = rospy.ServiceProxy('robot/easy_CA', collision_avoid)
+        resp1 = base_to_avoidance(target_base_to_avoidance)
+        return resp1.tar_pose
+    except rospy.ServiceException as e:
+        print("Service call failed: %s"%e)
+    
+    
+    
 def Mission_Trigger():
     if GetInfoFlag == True and GetKeyFlag == False and ExecuteFlag == False:
         GetInfo_Mission()
