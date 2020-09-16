@@ -327,6 +327,15 @@ class HiwinRobotInterface(object):
     def Stop_motion(self):
         """Stop the motion of the robot."""
         self.HRSDKLib.motion_abort(self.robot_id)
+    def Continue_motion(self):
+        """continue the motion of the robot."""
+        self.HRSDKLib.motion_continue(self.robot_id)
+    def Hold_motion(self):
+        """Hold the motion of the robot."""
+        self.HRSDKLib.motion_hold(self.robot_id)
+    def Delay_motion(self,delay):
+        """Delay the motion of the robot."""
+        self.HRSDKLib.motion_delay(self.robot_id,c_int(delay))
 
     def Get_current_position(self):
         Current_Pos = (c_double * 6)()
