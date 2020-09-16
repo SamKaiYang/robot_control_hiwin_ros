@@ -1,7 +1,7 @@
 from distutils.core import setup
 from catkin_pkg.python_setup import generate_distutils_setup
 d = generate_distutils_setup(
-    packages=['tool_angle'],
+    packages=['collision_avoidance'],
     package_dir={'': 'src'}
 )
 setup(**d)
