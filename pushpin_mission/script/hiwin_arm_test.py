@@ -157,7 +157,7 @@ if __name__ == '__main__':
             # robot_ctr.Set_robot_output(2,False)
             # robot_ctr.Set_robot_output(3,False)
             # robot_ctr.Set_robot_output(4,False)
-            robot_ctr.Set_digital_output(1,False)
+            robot_ctr.Set_digital_output(1,True)
             robot_ctr.Set_digital_output(2,False)
             robot_ctr.Set_digital_output(3,False)
         while(1):
@@ -167,6 +167,7 @@ if __name__ == '__main__':
             robot_outputs_state = robot_ctr.Get_current_robot_outputs()
             robot_inputs_state = robot_ctr.Get_current_robot_inputs()
             digital_output_state = robot_ctr.Get_current_digital_outputs()
+
             #print("robot outputs state:",robot_outputs_state)
             #print("robot inputs state:",robot_inputs_state)
 

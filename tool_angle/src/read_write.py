@@ -44,9 +44,9 @@ ADDR_MX_PRESENT_POSITION   = 36
 PROTOCOL_VERSION            = 1.0               # See which protocol version is used in the Dynamixel
 
 # Default setting
-DXL_ID                      = 1                 # Dynamixel ID : 1
+DXL_ID                      = 2                 # Dynamixel ID : 1
 BAUDRATE                    = 1000000             # Dynamixel default baudrate : 57600
-DEVICENAME                  = '/dev/ttyUSB0'    # Check which port is being used on your controller
+DEVICENAME                  = 'COM5'    # Check which port is being used on your controller
                                                 # ex) Windows: "COM1"   Linux: "/dev/ttyUSB0" Mac: "/dev/tty.usbserial-*"
 
 TORQUE_ENABLE               = 1                 # Value for enabling the torque
@@ -112,7 +112,8 @@ class ToolAxis:
     def __get_param(self):
         curr_path = os.path.dirname(os.path.abspath(__file__))
         config = ConfigParser.ConfigParser()
-        path = curr_path + '\..\config\ax_param.ini'
+        path = curr_path + '\..\config\_ax_param.ini'
+        print(path)
         config.read(path)
         self.__ini_pos = float(config.get("Pos", "ini_pos"))
         self.__end_pos = float(config.get("Pos", "end_pos"))
@@ -120,11 +121,12 @@ class ToolAxis:
     def __set_param(self):
         curr_path = os.path.dirname(os.path.abspath(__file__))
         config = ConfigParser.ConfigParser()
-        path = curr_path + '\..\config\ax_param.ini'
+        path = curr_path + '\..\config\_ax_param.ini'
         config.read(path)
         config.set("Pos", "ini_pos", str(self.__ini_pos))
         config.set("Pos", "end_pos", str(self.__end_pos))
-        config.write(open(curr_path + '/img_trans.ini', 'wb'))
+        config.write(open(curr_path + '\..\config\_ax_param.ini', 'wb'))
+        print('writed')
 
     def __ax_calibration(self, req):
         if 'dis' in str(req.cmd):
@@ -140,16 +142,19 @@ class ToolAxis:
     def __map_angle(self, tar_angle):
         dis_ax = self.__end_pos - self.__ini_pos
         dis_tar = self.__tar_end_pos - self.__tra_ini_pos
-        return (tar_angle - self.__tra_ini_pos) * dis_ax / dis_tar + self.__ini_pos 
+        return int((tar_angle - self.__tra_ini_pos) * dis_ax / dis_tar + self.__ini_pos)
 
     def __move_ax(self, req):
-        dxl_goal_position = self.__map_angle(req.angle)
+        print(req.angle)
+        dxl_goal_position = self.__map_angle(float(req.angle))
+        print(dxl_goal_position)
         self.packetHandler.write1ByteTxRx(self.portHandler, DXL_ID, ADDR_MX_TORQUE_ENABLE, TORQUE_ENABLE)
         self.packetHandler.write4ByteTxRx(self.portHandler, DXL_ID, ADDR_MX_GOAL_POSITION, dxl_goal_position)
         return True
 
 if __name__ == "__main__":
     rospy.init_node('tool_axis')
+    print(os.name)
     worker = ToolAxis()
-    worker.test()
+    # worker.test()
     rospy.spin()
