@@ -148,8 +148,8 @@ class CollisionAvoidance:
         tool_obj_trans = np.linalg.inv(self._tar_trans) * self._ini_trans
         z_proj = np.append(tool_obj_trans[:2], 0.)
         tool_z_angle = acos(np.dot(z_proj, [1,0,0]) / np.linalg.norm(z_proj))
+        
         self._tar_trans = self._tar_trans * np.mat(tf.transformations.rotation_matrix(tool_z_angle, [0, 0, 1], point=None))
-
         suc_trans = np.mat(tf.transformations.rotation_matrix(suc_angle, [0, 1, 0], point=None))
         dis_trans = self._ini_trans * np.linalg.inv(suc_trans) * np.linalg.inv(self._tar_trans)
         angle, direc, point = tf.transformations.rotation_from_matrix(dis_trans)
@@ -158,6 +158,9 @@ class CollisionAvoidance:
             print('FUCKNONON_________FUCK__________ONONONONONOFUFK')
         else:
             print('NiceN__________Nice_____________NNNice')
+        mat = np.mat(np.identity(4))
+        mat[2, 3] = self.suction_len
+        self._tar_trans = self._tar_trans * mat
         res = collision_avoidResponse()
         x, y, z = np.array(np.multiply(self._tar_trans[0:3, 3:], 100)).reshape(-1)
         a, b, c = [degrees(abc) for abc in tf.transformations.euler_from_matrix(self._tar_trans, axes='sxyz')]
