@@ -6,3 +6,4 @@ float64     dis
 
 float64[]   tar_pose
 float64[]   dis_trans
+float64     suc_angle
