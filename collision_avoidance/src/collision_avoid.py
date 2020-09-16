@@ -5,7 +5,7 @@ import rospy
 import tf
 import copy
 import ConfigParser
-from math import radians, degrees, pi
+from math import radians, degrees, pi, acos
 from control_node.msg import robot_info
 from collision_avoidance.srv import collision_avoid, collision_avoidResponse
 
@@ -13,6 +13,7 @@ class CollisionAvoidance:
     def __init__(self, limit_array):
         self._hx, self._lx, self._hy, self._ly, self._lz = limit_array
         self.limit = 0.085
+        self.suction_len = 0.043
         self.single_trans_angle = 5
         self._curr_pose = np.zeros(6)
         self._tool_coor = np.zeros(6)
@@ -115,7 +116,54 @@ class CollisionAvoidance:
         return res
 
     def __complete_collision_avoid(self, req):
-        pass
+        '''
+        1. get suction vector
+        2. update end position (include the dis between obj and end point) defalt orientation is 180, 0, 0
+        3. check position
+        4. check collision
+        5. caculate suc angle and Z axis rotation
+        6. update end trans (without suction)
+        7. caculate trans mat from end suction to obj
+        '''
+        self.__get_robot_trans()
+        abc = [radians(i) for i in req.ini_pose[3:]]
+        self._ini_trans[0:3, 0:3] = tf.transformations.euler_matrix(abc[0], abc[1], abc[2], axes='sxyz')[0:3, 0:3]
+        self._ini_trans[0:3, 3:] = np.mat([i/100 for i in req.ini_pose[:3]]).reshape(3, 1)
+        self._tar_trans = copy.deepcopy(self._ini_trans)
+        mat = np.mat(np.identity(4))
+        dis = req.dis/100 if req.dis is not None and req.dis > 0 else 0
+        mat[2, 3] = -dis if dis < 0.1 else -0.1
+        mat[2, 3] -= self.suction_len
+        self._tar_trans = self._tar_trans * mat
+        self._tar_trans[0:3, 0:3] = tf.transformations.euler_matrix(radians(180), 0, 0, axes='sxyz')[0:3, 0:3]
+
+        limit = req.limit/100 if req.limit > 0 else 0
+        self._check_position(limit if limit < 0.1 else 0.1)
+        for _ in range(10):
+            if self._check_collision() is False:
+                break
+        
+        suc_angle = acos(np.dot(self._ini_trans[:3, 2:3], self._tar_trans[:3, 2:3]) / (np.linalg.norm(self._ini_trans[:3, 2:3]) * np.linalg.norm(self._tar_trans[:3, 2:3])))
+        suc_angle = -1 * suc_angle if suc_angle < pi/2 else -1 * (pi - suc_angle)  # because ax_12 axis
+        tool_obj_trans = np.linalg.inv(self._tar_trans) * self._ini_trans
+        z_proj = np.append(tool_obj_trans[:2], 0.)
+        tool_z_angle = acos(np.dot(z_proj, [1,0,0]) / np.linalg.norm(z_proj))
+        self._tar_trans = self._tar_trans * np.mat(tf.transformations.rotation_matrix(tool_z_angle, [0, 0, 1], point=None))
+
+        suc_trans = np.mat(tf.transformations.rotation_matrix(suc_angle, [0, 1, 0], point=None))
+        dis_trans = self._ini_trans * np.linalg.inv(suc_trans) * np.linalg.inv(self._tar_trans)
+        angle, direc, point = tf.transformations.rotation_from_matrix(dis_trans)
+        print(angle, ', ', direc, ', ', point)
+        if np.dot(direc, [0, 0, 1]) < 0.99:
+            print('FUCKNONON_________FUCK__________ONONONONONOFUFK')
+        else:
+            print('NiceN__________Nice_____________NNNice')
+        res = collision_avoidResponse()
+        x, y, z = np.array(np.multiply(self._tar_trans[0:3, 3:], 100)).reshape(-1)
+        a, b, c = [degrees(abc) for abc in tf.transformations.euler_from_matrix(self._tar_trans, axes='sxyz')]
+        res.tar_pose = [x, y, z, a, b, c]
+        res.dis_trans = np.array(dis_trans).reshape(-1)
+        return res
 
 if __name__ == "__main__":
     rospy.init_node('collision_avoidance')
