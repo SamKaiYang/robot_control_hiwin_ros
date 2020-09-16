@@ -1,5 +1,5 @@
 #### ros cmd
-#roslaunch pushpin_mission pick_and_place.launch
+#roslaunch pushpin_mission pick_and_place_transparent.launch
 import rospy
 import sys
 import time
@@ -40,11 +40,14 @@ CurrentMissionType = 0
 arm_move_times = 1
 
 ###---pixel z to base data init
-camera_z = 42
+camera_z = 40
 
 ## strategy data init 
+obj_num = 0
 pick_obj_times = 0
+target_base_avoidance = []
 next_take_yolo_flag = False
+objects_picked_num = 0#Number of objects picked
 
 class Arm_cmd(enum.IntEnum):
     MoveToObj_Pick = 1
@@ -55,9 +58,10 @@ class Arm_cmd(enum.IntEnum):
     MoveToTarget_PlaceUp = 6
     Absort_Check = 7
     Arm_Stop = 8
-    Get_Image1 = 9
-    Get_Image2 = 10
-    Go_back_home = 11
+    Get_Image = 9
+    Go_Image1 = 10
+    Go_Image2 = 11
+    Go_back_home = 12
 
 class MissionType(enum.IntEnum):
     Get_Img = 0
@@ -102,49 +106,6 @@ class bounding_boxes():
 
 boxes = bounding_boxes(0,0,0,0,0)
 # YOLO V4 input
-def Yolo_callback(data):
-    global obj_num,pick_obj_times
-    check_obj_count = 0
-    obj_num = len((data.ROI_list))
-    if obj_num == 0:
-        print("No Object Found!")
-        print("change method to Realsense!")
-    elif obj_num != 0 and next_take_yolo_flag == True:
-        next_take_yolo_flag = False
-        for i in range(obj_num):
-            boxes.probability = data.ROI_list[i].probability
-            if boxes.probability >=0.9:
-                boxes.x = data.ROI_list[i].x
-                boxes.y = data.ROI_list[i].y
-                boxes.id_name = data.ROI_list[i].id
-                boxes.Class_name = data.ROI_list[i].object_name
-
-                boxes.x = data.ROI_list[i].x
-                boxes.y = data.ROI_list[i].y
-                boxes.id_name = data.ROI_list[i].id
-                boxes.Class_name = data.ROI_list[i].object_name
-                boxes.add(boxes.x,boxes.y)
-                check_obj_count += 1
-            pick_obj_times = check_obj_count
-                # print("boxes.x:",boxes.x)
-                # print("boxes.y",boxes.y)
-                # print("boxes.id_name",boxes.id_name)
-                # print("boxes.Class_name",boxes.Class_name)
-                ########test #####
-                #Obj_Data_Calculation()
-def Obj_Data_Calculation(obj_times):
-    baseRequest = eye2baseRequest()
-    baseRequest.ini_pose = [boxes.data[obj_times][0],boxes[obj_times][1],camera_z] 
-    target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
-    avoidRequest = collision_avoidRequest()
-    avoidRequest.ini_pose = [target_base[0],target_base[1],target_base[2],180,0,0] 
-    avoidRequest.limit = 0.1 # test
-    avoidRequest.dis = 10 # test 
-    target_base_avoidance = base_avoidance_client(avoidRequest)
-    print("target_base:",target_base)
-    print("target_base_avoidance:",target_base_avoidance)
-
-#### origin 0916 v1#### origin 0916 v1#### origin 0916 v1#### origin 0916 v1#### origin 0916 v1
 # def Yolo_callback(data):
 #     global obj_num,pick_obj_times
 #     check_obj_count = 0
@@ -152,7 +113,8 @@ def Obj_Data_Calculation(obj_times):
 #     if obj_num == 0:
 #         print("No Object Found!")
 #         print("change method to Realsense!")
-#     else:
+#     elif obj_num != 0 and next_take_yolo_flag == True:
+#         next_take_yolo_flag = False
 #         for i in range(obj_num):
 #             boxes.probability = data.ROI_list[i].probability
 #             if boxes.probability >=0.9:
@@ -165,28 +127,55 @@ def Obj_Data_Calculation(obj_times):
 #                 boxes.y = data.ROI_list[i].y
 #                 boxes.id_name = data.ROI_list[i].id
 #                 boxes.Class_name = data.ROI_list[i].object_name
-#                 boxes.add()
+#                 boxes.add(boxes.x,boxes.y)
 #                 check_obj_count += 1
-#             pick_obj_times = check_obj_count
-#                 # print("boxes.x:",boxes.x)
-#                 # print("boxes.y",boxes.y)
-#                 # print("boxes.id_name",boxes.id_name)
-#                 # print("boxes.Class_name",boxes.Class_name)
-#                 ########test #####
-#                 #Obj_Data_Calculation()
-##-------------strategy start ------------
-# def Obj_Data_Calculation():
+#             pick_obj_times = check_obj_count ###Number of detected objects
+
+# def Obj_Data_Calculation(obj_times):  #Enter the number of objects that have been picked and place
+#     global objects_picked_num
 #     baseRequest = eye2baseRequest()
-#     baseRequest.ini_pose = [boxes.x,boxes.y,camera_z] 
+#     baseRequest.ini_pose = [boxes.data[objects_picked_num][0],boxes[objects_picked_num][1],camera_z] 
 #     target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
 #     avoidRequest = collision_avoidRequest()
 #     avoidRequest.ini_pose = [target_base[0],target_base[1],target_base[2],180,0,0] 
 #     avoidRequest.limit = 0.1 # test
 #     avoidRequest.dis = 10 # test 
 #     target_base_avoidance = base_avoidance_client(avoidRequest)
-#     print("target_base:",target_base)
-#     print("target_base_avoidance:",target_base_avoidance)
-#### origin 0916 v1#### origin 0916 v1#### origin 0916 v1#### origin 0916 v1
+#     objects_picked_num += 1 #Plus one
+def Yolo_callback(data):
+    global obj_num,pick_obj_times
+    check_obj_count = 0
+    obj_num = len((data.ROI_list))
+    if obj_num == 0:
+        print("No Object Found!")
+        print("change method to Realsense!")
+        
+    else:
+        for i in range(obj_num):
+            boxes.probability = data.ROI_list[i].probability
+            if boxes.probability >=0.9:
+                boxes.x = data.ROI_list[i].x
+                boxes.y = data.ROI_list[i].y
+                boxes.id_name = data.ROI_list[i].id
+                boxes.Class_name = data.ROI_list[i].object_name
+
+                boxes.x = data.ROI_list[i].x
+                boxes.y = data.ROI_list[i].y
+                boxes.id_name = data.ROI_list[i].id
+                boxes.Class_name = data.ROI_list[i].object_name
+
+def Obj_Data_Calculation():  #Enter the number of objects that have been picked and place
+    global objects_picked_num,target_base_avoidance
+    baseRequest = eye2baseRequest()
+    baseRequest.ini_pose = [boxes.x,boxes.y,camera_z] 
+    target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
+    avoidRequest = collision_avoidRequest()
+    avoidRequest.ini_pose = [target_base[0],target_base[1],target_base[2],180,0,0] 
+    avoidRequest.limit = 0.1 # test
+    avoidRequest.dis = 0 # test 
+    target_base_avoidance = base_avoidance_client(avoidRequest)
+    print("target_base:",target_base)
+    print("target_base_avoidance:",target_base_avoidance)
 def pixel_z_to_base_client(pixel_to_base):
     rospy.wait_for_service('robot/pix2base')
     try:
@@ -205,11 +194,62 @@ def base_avoidance_client(target_base_to_avoidance):
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
 
+def Mission_Trigger():
+    if GetKeyFlag == True and ExecuteFlag == False:
+        GetKey_Mission()
+    if GetKeyFlag == False and ExecuteFlag == True:
+        Execute_Mission()
+
+def GetKey_Mission():
+    global GetInfoFlag,GetKeyFlag,ExecuteFlag,MotionKey,MotionSerialKey
+
+    Mission = Get_MissionType()
+    MissionItem(Mission)
+    MotionSerialKey = MotionKey
+    GetKeyFlag = False
+    ExecuteFlag = True
+
+def Get_MissionType():
+    global MissionType_Flag,CurrentMissionType
+    for case in switch(MissionType_Flag):
+        if case(MissionType.Pick):
+            Type = MissionType.Pick
+            #print("Pick")
+            MissionType_Flag = MissionType.Place
+            break
+        if case(MissionType.Place):
+            Type = MissionType.Place
+            MissionType_Flag = MissionType.Get_Img
+            ####MissionType_Flag -=1
+            ###
+            '''''
+            1. Do you want to continue to absorb # Determine the number of objects picked up
+            
+            Type = MissionType.Get_Img or Type = MissionType.Get_Img2
+
+            2. Determine whether the task is to be completed
+
+            Type = MissionType.Mission_End
+            '''
+            break
+        if case(MissionType.Get_Img):
+            Type = MissionType.Get_Img
+            #MissionType_Flag -=1
+            break
+        if case(MissionType.Get_Img2):
+            Type = MissionType.Get_Img2
+            #MissionType_Flag -=1
+            break
+        if case(MissionType.Mission_End):
+            Type = MissionType.Mission_End
+            break
+    CurrentMissionType = Type
+    return Type
+
 def MissionItem(ItemNo):
     global MotionKey
     Key_PickCommand = [\
         Arm_cmd.MoveToObj_Pick,\
-        Arm_cmd.Absort_ON,\
         Arm_cmd.Absort_Check,\
         Arm_cmd.MoveToObj_PickUp,\
         Arm_cmd.Arm_Stop,\
@@ -221,47 +261,118 @@ def MissionItem(ItemNo):
         Arm_cmd.Arm_Stop,\
         ]
     Key_Get_Image1_Command = [\
-        Arm_cmd.Get_Image1,\
+        Arm_cmd.Go_Image1,\
+        Arm_cmd.Get_Image,\
         Arm_cmd.Arm_Stop,\
         ]
-    Key_Get_Image2_PlaceCommand = [\
-        Arm_cmd.Get_Image2,\
+    Key_Get_Image2_Command = [\
+        Arm_cmd.Go_Image2,\
+        Arm_cmd.Get_Image,\
         Arm_cmd.Arm_Stop,\
         ]
+    Key_Mission_End_Command = [\
+        Arm_cmd.Go_back_home,\
+        Arm_cmd.Arm_Stop,\
+        ]
+    for case in switch(ItemNo): 
+        if case(MissionType.Pick):
+            MotionKey = Key_PickCommand
+            break
+        if case(MissionType.Place):
+            MotionKey = Key_PlaceCommand
+            break
+        if case(MissionType.Get_Img):
+            MotionKey = Key_Get_Image1_Command
+            break
+        if case(MissionType.Get_Img2):
+            MotionKey = Key_Get_Image2_Command
+            break
+        if case(MissionType.Mission_End):
+            MotionKey = Key_Mission_End_Command
+            break
+    return MotionKey
 
+def Execute_Mission():
+    global GetInfoFlag,GetKeyFlag,ExecuteFlag,MotionKey,MotionStep,MotionSerialKey,MissionEndFlag,CurrentMissionType
+    
+    if arm_down_pick_flag == True :
+        robot_inputs_state = robot_ctr.Get_current_robot_inputs() # Determine whether the object is sucked
+        if robot_inputs_state[0] == True:  # is digital IO input 1 pin
+            print("Absort success") 
+            '''''
+            Draw success plus one
+            '''''
+            robot_ctr.Stop_motion()  #That is, it is sucked and started to place
+        else:
+            pass # Continue task
+    
+    Arm_state = robot_ctr.get_robot_motion_state() ## get arm state
+    if Arm_state == 1:  
+        if MotionKey[MotionStep] == Arm_cmd.Arm_Stop:
+            if MissionEndFlag == True:
+                CurrentMissionType = MissionType.Mission_End
+                GetKeyFlag = False
+                ExecuteFlag = False
+                print("Mission_End")
+            elif CurrentMissionType == MissionType.Pick:
+                GetKeyFlag = True
+                ExecuteFlag = False
+                MotionStep = 0
+                print("Pick")
+            elif CurrentMissionType == MissionType.Place:
+                GetKeyFlag = True
+                ExecuteFlag = False
+                MotionStep = 0
+                print("Pick")
+            elif CurrentMissionType == MissionType.Get_Img:
+                GetKeyFlag = True
+                ExecuteFlag = False
+                MotionStep = 0
+            elif CurrentMissionType == MissionType.Get_Img2:
+                GetKeyFlag = True
+                ExecuteFlag = False
+                MotionStep = 0
+        else:
+            MotionItem(MotionSerialKey[MotionStep])
+            #MotionStep += 1
 def MotionItem(ItemNo):
-    global SpeedValue,PushFlag,MissionEndFlag,CurrentMissionType,MotionStep
+    global SpeedValue,PushFlag,MissionEndFlag,CurrentMissionType,MotionStep,objects_picked_num,obj_num,MissionType_Flag,target_base_avoidance
     robot_ctr.Set_override_ratio(5) # test speed 
     for case in switch(ItemNo):
         if case(Arm_cmd.Arm_Stop):
-            
             print("Arm_Stop")
             break
         if case(Arm_cmd.MoveToObj_Pick):
-            ###above box height
-            above_box_height = 10
-            positon = [target_base_avoidance[0],target_base_avoidance[1],above_box_height,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position above
-            robot_ctr.Step_AbsPTPCmd(positon)
             positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2]+10,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsPTPCmd(positon)
-            positon = target_base_avoidance
-            #robot_ctr.Step_AbsLine_PosCmd(positon,1,10) ## test
+            positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2],target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+            #robot_ctr.Step_AbsPTPCmd(positon) ## test
+            robot_ctr.Step_AbsLine_PosCmd(positon,0,10) ## test
+            arm_down_pick_flag = True
+            robot_ctr.Set_digital_output(1,True) # Absort_ON
             print("MoveToObj_Pick")
             MotionStep += 1
             break
-        if case(Arm_cmd.Absort_ON):
-            robot_ctr.Set_digital_output(1,True)
-            print("Absort_ON")
-            MotionStep += 1
-            break
         if case(Arm_cmd.Absort_Check):
-            robot_inputs_state = robot_ctr.Get_current_robot_inputs()
-            if robot_inputs_state[0] == True:
-                print("Absort success") 
+            robot_inputs_state = robot_ctr.Get_current_robot_inputs() # Determine whether the object is sucked
+            if robot_inputs_state[0] == True:  # is digital IO input 1 pin
+                print("Absort success check and mission continue") 
+                '''''
+                Draw success plus one
+                '''''
                 MotionStep += 1
             else:
-                print("Absort fail")
-                #MotionStep += 1 # tmp
+                print("Absort fail and mission continue to Get image")
+                ''''''''''
+                1.Suck next object
+                MissionType_Flag = pick
+                2.If there is no next object, take another photo
+                ''''''''''
+                MissionType_Flag =  MissionType.Get_Img
+                GetKeyFlag = True
+                ExecuteFlag = False
+                MotionStep += 1 # tmp
+            arm_down_pick_flag = False #Initialize the flag to determine the next action 
             break
         if case(Arm_cmd.MoveToObj_PickUp):
             positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2]+10,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
@@ -274,7 +385,7 @@ def MotionItem(ItemNo):
             break
         if case(Arm_cmd.MoveToTarget_Place):
             # relate 0 point x+8 y-3 above box z +10
-            positon = [8 ,-3, 10, -180,0,0]
+            positon = [12 ,-3, 10, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
             print("MoveToTarget_Place")
             MotionStep += 1
@@ -285,23 +396,47 @@ def MotionItem(ItemNo):
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToTarget_PlaceUp):
-            # positon = [39.4 ,1.09, -6.4, -180,0,90]
-            # robot_ctr.Step_AbsLine_PosCmd(positon,1,10) ## test
-            # print("MoveToTarget_Place")
+            positon = [12 ,10, 10, -180,0,0]
+            robot_ctr.Step_AbsPTPCmd(positon)
             MotionStep += 1
             break
-        if case(Arm_cmd.Get_Image1):
+        if case(Arm_cmd.Go_Image1):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic point(1)
             positon =  [16.8611, 22.7639, -1.5206, -179.725, 10.719, -89.858]
             robot_ctr.Step_AbsPTPCmd(positon)
+            ##time.sleep(20) ### test 9/16
             MotionStep += 1
             break
-        if case(Arm_cmd.Get_Image2):
+        if case(Arm_cmd.Go_Image2):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic point(2)
             positon =  [16.8611, 37, -1.5206, -179.725, 10.719, -89.858]
             robot_ctr.Step_AbsPTPCmd(positon)
+            MotionStep += 1
+            break
+        if case(Arm_cmd.Get_Image):
+            CurrentMissionType = MissionType.Get_Img
+            ### test take pic
+            #Obj_Data_Calculation(objects_picked_num)
+            # if pick_obj_times == objects_picked_num:
+            #     pass
+            Obj_Data_Calculation()
+            time.sleep(0.2) # Delayed time to see
+            if obj_num == 0: # If you don't see the object,Mission End
+                MissionType_Flag = MissionType.Mission_End
+                print("mission end")
+            else: # Have seen the object, take the action
+                MissionType_Flag = MissionType.Pick
+                print("Get_Image success")
+            
+            '''''''''''
+            1.If the area object is not finished
+            2.If there is no next object, take next photo spot
+            MissionType_Flag = Get_Img2
+            3.If next photo spot is elso noing, end of mission
+            If ob_num == 0
+            '''''''''''
             MotionStep += 1
             break
         if case(Arm_cmd.Go_back_home):
@@ -354,17 +489,11 @@ if __name__ == '__main__':
     a = rospy.Subscriber("obj_position",ROI_array,Yolo_callback)
 
     ## strategy trigger
-    GetInfoFlag = True #Test no data
     try:
         if robot_ctr.is_connected():
             robot_ctr.Set_operation_mode(0)
-            # set tool & base coor
-            # tool_coor = [0,0,180,0,0,0]
-            # base_coor = [0,0,0,0,0,0]
             robot_ctr.Set_base_number(5)
-            #base_result = robot_ctr.Define_base(1,base_coor)
             robot_ctr.Set_tool_number(15)
-            #tool_result = robot_ctr.Define_tool(1,tool_coor)
 
             robot_ctr.Set_operation_mode(1)
             robot_ctr.Set_override_ratio(5)
@@ -374,8 +503,9 @@ if __name__ == '__main__':
             robot_ctr.Set_digital_output(2,False)
             robot_ctr.Set_digital_output(3,False)
 
+            GetKeyFlag = True # start strategy
+            # Get_Image = 0 ,so first take a photo to see if there are objects
         while(1):
-            ### mission test 0916
             Mission_Trigger()
             if CurrentMissionType == MissionType.Mission_End:
                 rospy.on_shutdown(myhook)

@@ -1,5 +1,5 @@
 #### ros cmd
-#roslaunch pushpin_mission pick_and_place.launch
+#roslaunch pushpin_mission pick_and_place_transparent.launch
 import rospy
 import sys
 import time
@@ -43,7 +43,9 @@ arm_move_times = 1
 camera_z = 42
 
 ## strategy data init 
+obj_num = 0
 pick_obj_times = 0
+target_base_avoidance = []
 next_take_yolo_flag = False
 objects_picked_num = 0#Number of objects picked
 
@@ -129,7 +131,7 @@ boxes = bounding_boxes(0,0,0,0,0)
 #                 check_obj_count += 1
 #             pick_obj_times = check_obj_count ###Number of detected objects
 
-# def Obj_Data_Calculation(obj_times):  #Enter the number of objects that have been picked and place＃
+# def Obj_Data_Calculation(obj_times):  #Enter the number of objects that have been picked and place
 #     global objects_picked_num
 #     baseRequest = eye2baseRequest()
 #     baseRequest.ini_pose = [boxes.data[objects_picked_num][0],boxes[objects_picked_num][1],camera_z] 
@@ -162,16 +164,18 @@ def Yolo_callback(data):
                 boxes.id_name = data.ROI_list[i].id
                 boxes.Class_name = data.ROI_list[i].object_name
 
-def Obj_Data_Calculation():  #Enter the number of objects that have been picked and place＃
-    global objects_picked_num
+def Obj_Data_Calculation():  #Enter the number of objects that have been picked and place
+    global objects_picked_num,target_base_avoidance
     baseRequest = eye2baseRequest()
-    baseRequest.ini_pose = [boxes.x,boxes.z,camera_z] 
+    baseRequest.ini_pose = [boxes.x,boxes.y,camera_z] 
     target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
     avoidRequest = collision_avoidRequest()
     avoidRequest.ini_pose = [target_base[0],target_base[1],target_base[2],180,0,0] 
     avoidRequest.limit = 0.1 # test
-    avoidRequest.dis = 10 # test 
+    avoidRequest.dis = 0 # test 
     target_base_avoidance = base_avoidance_client(avoidRequest)
+    print("target_base:",target_base)
+    print("target_base_avoidance:",target_base_avoidance)
 def pixel_z_to_base_client(pixel_to_base):
     rospy.wait_for_service('robot/pix2base')
     try:
@@ -210,6 +214,7 @@ def Get_MissionType():
     for case in switch(MissionType_Flag):
         if case(MissionType.Pick):
             Type = MissionType.Pick
+            #print("Pick")
             MissionType_Flag = MissionType.Place
             break
         if case(MissionType.Place):
@@ -261,12 +266,12 @@ def MissionItem(ItemNo):
         Arm_cmd.Get_Image,\
         Arm_cmd.Arm_Stop,\
         ]
-    Key_Get_Image2_PlaceCommand = [\
-        Arm_cmd.Go_Image2
+    Key_Get_Image2_Command = [\
+        Arm_cmd.Go_Image2,\
         Arm_cmd.Get_Image,\
         Arm_cmd.Arm_Stop,\
         ]
-    Key_Mission_End_PlaceCommand = [\
+    Key_Mission_End_Command = [\
         Arm_cmd.Go_back_home,\
         Arm_cmd.Arm_Stop,\
         ]
@@ -281,10 +286,10 @@ def MissionItem(ItemNo):
             MotionKey = Key_Get_Image1_Command
             break
         if case(MissionType.Get_Img2):
-            MotionKey = Key_Get_Image2_PlaceCommand
+            MotionKey = Key_Get_Image2_Command
             break
         if case(MissionType.Mission_End):
-            MotionKey = Key_Mission_End_PlaceCommand
+            MotionKey = Key_Mission_End_Command
             break
     return MotionKey
 
@@ -320,7 +325,7 @@ def Execute_Mission():
             MotionItem(MotionSerialKey[MotionStep])
             #MotionStep += 1
 def MotionItem(ItemNo):
-    global SpeedValue,PushFlag,MissionEndFlag,CurrentMissionType,MotionStep,objects_picked_num,obj_num
+    global SpeedValue,PushFlag,MissionEndFlag,CurrentMissionType,MotionStep,objects_picked_num,obj_num,MissionType_Flag,target_base_avoidance
     robot_ctr.Set_override_ratio(5) # test speed 
     for case in switch(ItemNo):
         if case(Arm_cmd.Arm_Stop):
@@ -330,12 +335,16 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.MoveToObj_Pick):
             ###above box height
             above_box_height = 10
-            positon = [target_base_avoidance[0],target_base_avoidance[1],above_box_height,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position above
-            robot_ctr.Step_AbsPTPCmd(positon)
+            #positon = [target_base_avoidance[0],target_base_avoidance[1],above_box_height,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position above
+            #robot_ctr.Step_AbsPTPCmd(positon)
             positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2]+10,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsPTPCmd(positon)
-            positon = target_base_avoidance
-            #robot_ctr.Step_AbsLine_PosCmd(positon,1,10) ## test
+            positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2],target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+            robot_ctr.Step_AbsPTPCmd(positon) ## test
+
+            robot_ctr.Set_digital_output(1,True)
+            
+            #robot_ctr.Step_AbsLine_PosCmd(positon,0,10) ## test
             print("MoveToObj_Pick")
             MotionStep += 1
             break
@@ -374,7 +383,7 @@ def MotionItem(ItemNo):
             break
         if case(Arm_cmd.MoveToTarget_Place):
             # relate 0 point x+8 y-3 above box z +10
-            positon = [8 ,-3, 10, -180,0,0]
+            positon = [12 ,-3, 10, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
             print("MoveToTarget_Place")
             MotionStep += 1
@@ -385,8 +394,8 @@ def MotionItem(ItemNo):
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToTarget_PlaceUp):
-            # positon = [39.4 ,1.09, -6.4, -180,0,90]
-            # robot_ctr.Step_AbsLine_PosCmd(positon,1,10) ## test
+            positon = [12 ,10, 10, -180,0,0]
+            robot_ctr.Step_AbsPTPCmd(positon)
             # print("MoveToTarget_Place")
             MotionStep += 1
             break
@@ -395,6 +404,7 @@ def MotionItem(ItemNo):
             ### test take pic point(1)
             positon =  [16.8611, 22.7639, -1.5206, -179.725, 10.719, -89.858]
             robot_ctr.Step_AbsPTPCmd(positon)
+            ##time.sleep(20) ### test 9/16
             MotionStep += 1
             break
         if case(Arm_cmd.Go_Image2):
@@ -407,22 +417,25 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.Get_Image):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic
-            Obj_Data_Calculation(objects_picked_num)
-            if pick_obj_times == objects_picked_num:
-                pass
+            #Obj_Data_Calculation(objects_picked_num)
+            # if pick_obj_times == objects_picked_num:
+            #     pass
             Obj_Data_Calculation()
+            time.sleep(0.2)
             if obj_num == 0:
                 MissionType_Flag = MissionType.Mission_End
+                print("mission end")
             else:
                 MissionType_Flag = MissionType.Pick
+                print("Get_Image success")
             
-            ''''
+            '''''''''''
             1.If the area object is not finished
             2.If there is no next object, take next photo spot
             MissionType_Flag = Get_Img2
             3.If next photo spot is elso noing, end of mission
             If ob_num == 0
-            ''''
+            '''''''''''
             MotionStep += 1
             break
         if case(Arm_cmd.Go_back_home):

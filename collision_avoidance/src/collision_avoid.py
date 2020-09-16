@@ -12,7 +12,7 @@ from collision_avoidance.srv import collision_avoid, collision_avoidResponse
 class CollisionAvoidance:
     def __init__(self, limit_array):
         self._hx, self._lx, self._hy, self._ly, self._lz = limit_array
-        self.limit = 0.085
+        self.limit = 0.1
         self.suction_len = 0.043
         self.single_trans_angle = 5
         self._curr_pose = np.zeros(6)
@@ -142,14 +142,17 @@ class CollisionAvoidance:
         for _ in range(10):
             if self._check_collision() is False:
                 break
-        
-        suc_angle = acos(np.dot(self._ini_trans[:3, 2:3], self._tar_trans[:3, 2:3]) / (np.linalg.norm(self._ini_trans[:3, 2:3]) * np.linalg.norm(self._tar_trans[:3, 2:3])))
+        print('1: /n', self._tar_trans)
+        suc_angle = acos(np.dot(np.array(self._ini_trans[:3, 2:3]).reshape(-1), np.array(self._tar_trans[:3, 2:3]).reshape(-1)) \
+                      / (np.linalg.norm(self._ini_trans[:3, 2:3]) * np.linalg.norm(self._tar_trans[:3, 2:3])))
         suc_angle = -1 * suc_angle if suc_angle < pi/2 else -1 * (pi - suc_angle)  # because ax_12 axis
         tool_obj_trans = np.linalg.inv(self._tar_trans) * self._ini_trans
-        z_proj = np.append(tool_obj_trans[:2], 0.)
-        tool_z_angle = acos(np.dot(z_proj, [1,0,0]) / np.linalg.norm(z_proj))
-        
+        z_proj = np.append(np.array(tool_obj_trans[2, :2]), 0.)
+        print(np.dot(z_proj, [1,0,0]))
+        tool_z_angle = acos(np.dot(z_proj, [1,0,0])+1e-8 / (np.linalg.norm(z_proj)+1e-8))
+        print(tool_z_angle)
         self._tar_trans = self._tar_trans * np.mat(tf.transformations.rotation_matrix(tool_z_angle, [0, 0, 1], point=None))
+        print('2: /n', self._tar_trans)
         suc_trans = np.mat(tf.transformations.rotation_matrix(suc_angle, [0, 1, 0], point=None))
         dis_trans = self._ini_trans * np.linalg.inv(suc_trans) * np.linalg.inv(self._tar_trans)
         angle, direc, point = tf.transformations.rotation_from_matrix(dis_trans)
@@ -161,11 +164,13 @@ class CollisionAvoidance:
         mat = np.mat(np.identity(4))
         mat[2, 3] = self.suction_len
         self._tar_trans = self._tar_trans * mat
+        print('3: /n', self._tar_trans)
         res = collision_avoidResponse()
         x, y, z = np.array(np.multiply(self._tar_trans[0:3, 3:], 100)).reshape(-1)
         a, b, c = [degrees(abc) for abc in tf.transformations.euler_from_matrix(self._tar_trans, axes='sxyz')]
         res.tar_pose = [x, y, z, a, b, c]
         res.dis_trans = np.array(dis_trans).reshape(-1)
+        res.suc_angle = degrees(suc_angle)
         return res
 
 if __name__ == "__main__":
