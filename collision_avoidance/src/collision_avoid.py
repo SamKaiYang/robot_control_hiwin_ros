@@ -12,7 +12,7 @@ from collision_avoidance.srv import collision_avoid, collision_avoidResponse
 class CollisionAvoidance:
     def __init__(self, limit_array):
         self._hx, self._lx, self._hy, self._ly, self._lz = limit_array
-        self.limit = 0.085
+        self.limit = 0.1
         self.suction_len = 0.043
         self.single_trans_angle = 5
         self._curr_pose = np.zeros(6)
