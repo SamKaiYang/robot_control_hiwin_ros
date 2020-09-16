@@ -205,46 +205,6 @@ def base_avoidance_client(target_base_to_avoidance):
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
 
-def Mission_Trigger():
-    if GetInfoFlag == True and GetKeyFlag == False and ExecuteFlag == False:
-        GetInfo_Mission()
-    if GetInfoFlag == False and GetKeyFlag == True and ExecuteFlag == False:
-        GetKey_Mission()
-    if GetInfoFlag == False and GetKeyFlag == False and ExecuteFlag == True:
-        Execute_Mission()
-def GetInfo_Mission():
-    global GetInfoFlag,GetKeyFlag,ExecuteFlag
-
-    Obj_Data_Calculation()
-
-    GetInfoFlag = False
-    GetKeyFlag = True
-    ExecuteFlag = False
-
-def GetKey_Mission():
-    global GetInfoFlag,GetKeyFlag,ExecuteFlag,MotionKey,MotionSerialKey
-
-    Mission = Get_MissionType()
-    MissionItem(Mission)
-    MotionSerialKey = MotionKey
-    GetInfoFlag = False
-    GetKeyFlag = False
-    ExecuteFlag = True
-
-def Get_MissionType():
-    global MissionType_Flag,CurrentMissionType
-    for case in switch(MissionType_Flag):
-        if case(0):
-            Type = MissionType.Pick
-            MissionType_Flag +=1
-            break
-        if case(1):
-            Type = MissionType.Place
-            MissionType_Flag -=1
-            break
-    CurrentMissionType = Type
-    return Type
-
 def MissionItem(ItemNo):
     global MotionKey
     Key_PickCommand = [\
@@ -268,46 +228,7 @@ def MissionItem(ItemNo):
         Arm_cmd.Get_Image2,\
         Arm_cmd.Arm_Stop,\
         ]
-    for case in switch(ItemNo): 
-        if case(MissionType.Pick):
-            MotionKey = Key_PickCommand
-            break
-        if case(MissionType.Place):
-            MotionKey = Key_PlaceCommand
-            break
-    return MotionKey
 
-def Execute_Mission():
-    global GetInfoFlag,GetKeyFlag,ExecuteFlag,MotionKey,MotionStep,MotionSerialKey,MissionEndFlag,CurrentMissionType
-    Arm_state = robot_ctr.get_robot_motion_state() ## get arm state
-    if Arm_state == 1:  
-        if MotionKey[MotionStep] == Arm_cmd.Arm_Stop:
-            if MissionEndFlag == True:
-                CurrentMissionType = MissionType.Mission_End
-                GetInfoFlag = False
-                GetKeyFlag = False
-                ExecuteFlag = False
-                print("Mission_End")
-            elif CurrentMissionType == MissionType.Pick:
-                GetInfoFlag = False
-                GetKeyFlag = True
-                ExecuteFlag = False
-                MotionStep = 0
-                print("Pick")
-            elif CurrentMissionType == MissionType.Place:
-                GetInfoFlag = False
-                GetKeyFlag = True
-                ExecuteFlag = False
-                MotionStep = 0
-                print("Pick")
-            elif CurrentMissionType == MissionType.Get_Img:
-                GetInfoFlag = True
-                GetKeyFlag = False
-                ExecuteFlag = False
-                MotionStep = 0
-        else:
-            MotionItem(MotionSerialKey[MotionStep])
-            #MotionStep += 1
 def MotionItem(ItemNo):
     global SpeedValue,PushFlag,MissionEndFlag,CurrentMissionType,MotionStep
     robot_ctr.Set_override_ratio(5) # test speed 
