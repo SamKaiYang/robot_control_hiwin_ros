@@ -343,7 +343,16 @@ def MotionItem(ItemNo):
             robot_ctr.Step_AbsPTPCmd(positon) ## test
 
             robot_ctr.Set_digital_output(1,True)
-            
+            '''''
+            if robot_inputs_state[0] == True:
+                robot_ctr.Stop_motion()
+            else:
+                MissionType_Flag =  MissionType.Get_Img
+                GetKeyFlag = True
+                ExecuteFlag = False
+
+
+            '''''
             #robot_ctr.Step_AbsLine_PosCmd(positon,0,10) ## test
             print("MoveToObj_Pick")
             MotionStep += 1
@@ -360,6 +369,7 @@ def MotionItem(ItemNo):
                 print("Absort success") 
                 '''''
                 Draw success plus one
+                
                 '''''
                 MotionStep += 1
             else:
