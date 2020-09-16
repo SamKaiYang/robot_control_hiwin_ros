@@ -1,4 +1,4 @@
-
+#roslaunch transparent_mission hiwin_robot_control.launch
 import rospy
 import sys
 import time
@@ -139,12 +139,12 @@ if __name__ == '__main__':
         if robot_ctr.is_connected():
             robot_ctr.Set_operation_mode(0)
             # set tool & base coor
-            tool_coor = [0,0,180,180,0,0]
+            #tool_coor = [0,0,180,180,0,0]
             #base_coor = [0,0,0,0,0,0]
-            robot_ctr.Set_base_number(31)
+            robot_ctr.Set_base_number(5)
             #base_result = robot_ctr.Define_base(1,base_coor)
-            robot_ctr.Set_tool_number(1)
-            tool_result = robot_ctr.Define_tool(1,tool_coor)
+            robot_ctr.Set_tool_number(15)
+            #tool_result = robot_ctr.Define_tool(1,tool_coor)
 
             robot_ctr.Set_operation_mode(1)
             robot_ctr.Set_override_ratio(3)
@@ -169,8 +169,8 @@ if __name__ == '__main__':
             #positon = [0.0,0.0,10.0,-180,0,0]
             #robot_ctr.Step_AbsPTPCmd(positon)
 
-            #pose = robot_ctr.Get_current_position()
-            #print("pose:",pose)
+            pose = robot_ctr.Get_current_position()
+            print("pose:",pose)
         rospy.spin()
     except KeyboardInterrupt:
         robot_ctr.Set_motor_state(0)
