@@ -222,7 +222,7 @@ def Get_MissionType():
     for case in switch(MissionType_Flag):
         if case(MissionType.Pick):
             Type = MissionType.Pick
-            #print("Pick")
+            print("Pick")
             MissionType_Flag = MissionType.Place
             break
         if case(MissionType.Place):
@@ -358,10 +358,15 @@ def MotionItem(ItemNo):
             print("Arm_Stop")
             break
         if case(Arm_cmd.MoveToObj_Pick):
+            robot_ctr.Set_override_ratio(5) ##add speed
             positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsPTPCmd(positon)
-            positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2],target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+            robot_ctr.Set_override_ratio(2) ##speed low
+            # positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2],target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+            positon = [target_base_avoidance[0],target_base_avoidance[1],-29.9,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
+            # print("positon :",positon)
+            robot_ctr.Set_override_ratio(5) ##add speed
             arm_down_pick_flag = True
             robot_ctr.Set_digital_output(1,True) # Absort_ON
             print("MoveToObj_Pick")
@@ -390,6 +395,7 @@ def MotionItem(ItemNo):
             arm_down_pick_flag = False #Initialize the flag to determine the next action 
             break
         if case(Arm_cmd.MoveToObj_PickUp):
+            time.sleep(0.2)  # pause pick for check sucker ready
             if Stop_motion_flag == True: #There are early pick up items
                 Stop_motion_flag = False
             else: # Did not pick up items early
@@ -420,9 +426,9 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.Go_Image1):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic point(1)
-            positon =  [11.9673, 27.95, 10.0213, 179.993, 9.988, -0.487]
+            positon =  [11.3440, 26.4321, 2.7427, 179.994, 10.002, -0.488]
             robot_ctr.Step_AbsPTPCmd(positon)
-            #time.sleep(20) ### test 9/16
+            # time.sleep(20) ### test 9/16
             MotionStep += 1
             break
         if case(Arm_cmd.Go_Image2):
@@ -514,7 +520,7 @@ if __name__ == '__main__':
         if robot_ctr.is_connected():
             robot_ctr.Set_operation_mode(0)
             robot_ctr.Set_base_number(5)
-            robot_ctr.Set_tool_number(15)
+            robot_ctr.Set_tool_number(14) #pushpin tool
 
             robot_ctr.Set_operation_mode(1)
             robot_ctr.Set_override_ratio(5)
@@ -526,22 +532,23 @@ if __name__ == '__main__':
 
             GetKeyFlag = True # start strategy
             # Get_Image = 0 ,so first take a photo to see if there are objects
-        start_input = int(input('For first strategy, press 1, For second strategy, press 2:, For test strategy, press 3'))
+        start_input = int(input('For first strategy, press 1, For second strategy, press 2:, For test strategy, press 3: \n'))
 
         if start_input == 1:
             while(1):
-                MissionType_Flag = MissionType_Flag.Get_Img2 ## Watch twice
+                MissionType_Flag = MissionType.Get_Img2 ## Watch twice
                 Mission_Trigger()
                 if CurrentMissionType == MissionType.Mission_End:
                     rospy.on_shutdown(myhook)
         if start_input == 2:
             while(1):
-                Mission_Trigger() = MissionType_Flag.Get_Img2 ## Watch twice
+                MissionType_Flag = MissionType.Get_Img2 ## Watch twice
+                Mission_Trigger()
                 if CurrentMissionType == MissionType.Mission_End:
                     rospy.on_shutdown(myhook)
         if start_input == 3:
             while(1):
-                MissionType_Flag = MissionType.Get_Img
+                #MissionType_Flag = MissionType.Get_Img
                 Mission_Trigger()
                 if CurrentMissionType == MissionType.Mission_End:
                     rospy.on_shutdown(myhook)
