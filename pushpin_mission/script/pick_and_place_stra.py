@@ -1,5 +1,5 @@
 #### ros cmd
-#roslaunch pushpin_mission pick_and_place_transparent.launch
+#roslaunch transparent_mission pick_and_place_transparent.launch
 import rospy
 import sys
 import time
@@ -46,6 +46,7 @@ camera_z = 52
 obj_num = 0
 pick_obj_times = 0
 target_base_avoidance = []
+target_base_above_avoidance = []
 next_take_yolo_flag = False
 arm_down_pick_flag = False
 Stop_motion_flag = False
@@ -167,10 +168,15 @@ def Yolo_callback(data):
                 boxes.Class_name = data.ROI_list[i].object_name
 
 def Obj_Data_Calculation():  #Enter the number of objects that have been picked and place
-    global objects_picked_num,target_base_avoidance
+    global objects_picked_num,target_base_avoidance,target_base_above_avoidance
     baseRequest = eye2baseRequest()
     baseRequest.ini_pose = [boxes.x,boxes.y,camera_z] 
     target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
+    avoidRequest_above = collision_avoidRequest()
+    avoidRequest_above.ini_pose = [target_base[0],target_base[1],target_base[2],180,0,0] 
+    avoidRequest_above.limit = 0.1 # test
+    avoidRequest_above.dis = 15 # test 
+    target_base_above_avoidance = base_avoidance_client(avoidRequest_above)
     avoidRequest = collision_avoidRequest()
     avoidRequest.ini_pose = [target_base[0],target_base[1],target_base[2],180,0,0] 
     avoidRequest.limit = 0.1 # test
@@ -310,14 +316,10 @@ def Execute_Mission():
 
             positon = [0,0,15,0,0,0] ###rel motion up z+15
             robot_ctr.Step_RelLineCmd(positon,1,10)
-            # go to take a pic position
-            positon =  [11.9673, 27.95, 10.0213, 179.993, 9.988, -0.487]
-            robot_ctr.Step_AbsPTPCmd(positon)
             Stop_motion_flag = True
             arm_down_pick_flag = False
         else:
-            # print("Abort fail")
-            pass # Continue task
+            pass  # Continue task
     
     Arm_state = robot_ctr.get_robot_motion_state() ## get arm state
     if Arm_state == 1:  
@@ -349,13 +351,13 @@ def Execute_Mission():
             MotionItem(MotionSerialKey[MotionStep])
 def MotionItem(ItemNo):
     global SpeedValue,PushFlag,MissionEndFlag,CurrentMissionType,MotionStep,objects_picked_num,obj_num,MissionType_Flag
-    global target_base_avoidance,arm_down_pick_flag,Stop_motion_flag
+    global target_base_avoidance,target_base_above_avoidance,arm_down_pick_flag,Stop_motion_flag
     for case in switch(ItemNo):
         if case(Arm_cmd.Arm_Stop):
             print("Arm_Stop")
             break
         if case(Arm_cmd.MoveToObj_Pick):
-            positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2]+15,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+            positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsPTPCmd(positon)
             positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2],target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
@@ -379,6 +381,7 @@ def MotionItem(ItemNo):
                 MissionType_Flag = pick
                 2.If there is no next object, take another photo
                 '''''
+                robot_ctr.Set_digital_output(1,False) # Absort_OFF
                 MissionType_Flag =  MissionType.Get_Img
                 GetKeyFlag = True
                 ExecuteFlag = False
@@ -387,22 +390,18 @@ def MotionItem(ItemNo):
             break
         if case(Arm_cmd.MoveToObj_PickUp):
             if Stop_motion_flag == True: #There are early pick up items
-                # # go to take a pic position
-                # positon =  [11.9673, 27.95, 10.0213, 179.993, 9.988, -0.487]
-                # robot_ctr.Step_AbsPTPCmd(positon)
                 Stop_motion_flag = False
             else: # Did not pick up items early
-                positon = [0,0,15,0,0,0] ###rel motion up z+15
-                robot_ctr.Step_RelLineCmd(positon,1,10)
-                # go to take a pic position
-                positon =  [11.9673, 27.95, 10.0213, 179.993, 9.988, -0.487]
-                robot_ctr.Step_AbsPTPCmd(positon)
+                positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
+                robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
                 print("MoveToObj_PickUp")
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToTarget_Place):
             # relate 0 point x+8 y-3 above box z +10
-            positon = [12 ,-3, 10, -180,0,0]
+            positon = [12 ,13, 10, -180,0,0]
+            robot_ctr.Step_AbsPTPCmd(positon)
+            positon = [12 ,-10, 10, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
             print("MoveToTarget_Place")
             MotionStep += 1
@@ -435,9 +434,6 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.Get_Image):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic
-            #Obj_Data_Calculation(objects_picked_num)
-            # if pick_obj_times == objects_picked_num:
-            #     pass
             time.sleep(0.2) # Delayed time to see
             Obj_Data_Calculation()
             if obj_num == 0: # If you don't see the object,Mission End
