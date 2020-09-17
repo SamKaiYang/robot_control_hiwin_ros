@@ -5,7 +5,7 @@ import numpy as np
 import transformations as tf
 import copy
 import configparser
-from math import radians, degrees, pi, acos
+from math import radians, degrees, pi, acos, atan2
 # from control_node.msg import robot_info
 # from collision_avoidance.srv import collision_avoid, collision_avoidResponse
 
@@ -142,42 +142,54 @@ class CollisionAvoidance:
         self._ini_trans[0:3, 0:3] = tf.transformations.euler_matrix(abc[0], abc[1], abc[2], axes='sxyz')[0:3, 0:3]
         self._ini_trans[0:3, 3:] = np.mat([i/100 for i in req.ini_pose[:3]]).reshape(3, 1)
         self._tar_trans = copy.deepcopy(self._ini_trans)
+        limit = req.limit/100 if req.limit > 0 else 0
+        self._check_position(limit if limit < 0.1 else 0.1)
         mat = np.mat(np.identity(4))
         dis = req.dis/100 if req.dis is not None and req.dis > 0 else 0
         mat[2, 3] = -dis if dis < 0.1 else -0.1
         mat[2, 3] -= self.suction_len
+        # print('-2: \n', self._tar_trans)
         self._tar_trans = self._tar_trans * mat
+        # print('-1: \n', self._tar_trans)
+        # print('-0.5: \n', mat)
         self._tar_trans[0:3, 0:3] = tf.transformations.euler_matrix(radians(180), 0, 0, axes='sxyz')[0:3, 0:3]
-        print('0: /n', self._tar_trans)
-        limit = req.limit/100 if req.limit > 0 else 0
-        self._check_position(limit if limit < 0.1 else 0.1)
+        # print('0: \n', self._tar_trans)
         for i in range(10):
             if self._check_collision() is False:
                 print('fuckk: ', i)
                 break
-        print('1: /n', self._tar_trans)
-        suc_angle = acos(np.dot(np.array(self._ini_trans[:3, 2:3]).reshape(-1), np.array(self._tar_trans[:3, 2:3]).reshape(-1)) \
-                      / (np.linalg.norm(self._ini_trans[:3, 2:3]) * np.linalg.norm(self._tar_trans[:3, 2:3])))
+        # print('1: \n', self._tar_trans)
+        suc_angle = acos(np.dot(np.array(self._ini_trans[:3, 2:3]).reshape(-1), np.array(self._tar_trans[:3, 2:3]).reshape(-1))) 
         suc_angle = -1 * suc_angle if suc_angle < pi/2 else -1 * (pi - suc_angle)  # because ax_12 axis
         tool_obj_trans = np.linalg.inv(self._tar_trans) * self._ini_trans
-        z_proj = np.append(np.array(tool_obj_trans[2, :2]), 0.)
-        print(np.dot(z_proj, [1,0,0]))
-        tool_z_angle = acos(np.dot(z_proj, [1,0,0])+1e-8 / (np.linalg.norm(z_proj)+1e-8))
-        print(tool_z_angle)
+        # z_proj = np.append(np.array(tool_obj_trans[2, :2]), 0.)
+        # print(np.dot(z_proj, [1,0,0]))
+        # tool_z_angle = acos(np.dot(z_proj, [1,0,0])+1e-8 / (np.linalg.norm(z_proj)+1e-8))
+        tool_z_angle = atan2(-1 * tool_obj_trans[1, 2], -1 * tool_obj_trans[0,2])
+        # print(tool_z_angle)
         self._tar_trans = self._tar_trans * np.mat(tf.transformations.rotation_matrix(tool_z_angle, [0, 0, 1], point=None))
-        print('2: /n', self._tar_trans)
+        # print('2: \n', self._tar_trans)
         suc_trans = np.mat(tf.transformations.rotation_matrix(suc_angle, [0, 1, 0], point=None))
-        dis_trans = self._ini_trans * np.linalg.inv(suc_trans) * np.linalg.inv(self._tar_trans)
-        angle, direc, point = tf.transformations.rotation_from_matrix(dis_trans)
-        print(angle, ', ', direc, ', ', point)
-        if np.dot(direc, [0, 0, 1]) < 0.99:
+        # print('suc_trans: ', suc_trans)
+        # print('self._ini_trans: \n', self._ini_trans)
+        # dis_trans = self._ini_trans * np.linalg.inv(suc_trans) * np.linalg.inv(self._tar_trans)
+        # base_obj_trans = self._tar_trans * suc_trans * dis_trans
+        # print('base_obj_trans: \n', base_obj_trans)
+        # base_end_trans = self._tar_trans * suc_trans
+        # print('base_end_trans: \n', base_end_trans)
+        dis_trans = np.linalg.inv(suc_trans) * np.linalg.inv(self._tar_trans) * self._ini_trans
+        _, direc, _ = tf.transformations.rotation_from_matrix(dis_trans)
+        if abs(np.dot(direc, [0, 0, 1])) < 0.99:
             print('FUCKNONON_________FUCK__________ONONONONONOFUFK')
+            # print(direc)
         else:
             print('NiceN__________Nice_____________NNNice')
         mat = np.mat(np.identity(4))
         mat[2, 3] = self.suction_len
+        # print('2.5: \n', self._tar_trans)
+        # print('2.75: \n', mat)
         self._tar_trans = self._tar_trans * mat
-        print('3: /n', self._tar_trans)
+        # print('3: \n', self._tar_trans)
         res = Collision_avoidResponse()
         x, y, z = np.array(np.multiply(self._tar_trans[0:3, 3:], 100)).reshape(-1)
         a, b, c = [degrees(abc) for abc in tf.transformations.euler_from_matrix(self._tar_trans, axes='sxyz')]
@@ -191,8 +203,8 @@ if __name__ == "__main__":
     limit_array = [0.394, 0.006, 0.587, 0.001, -0.3]
     worker = CollisionAvoidance(limit_array)
     req = Collision_avoidRequest()
-    req.ini_pose = [20,20,-30,180,0,0]
-    req.limit = 1
+    req.ini_pose = [0, 0,   3,  180, 90, -25]
+    req.limit = 2.5
     req.dis = 0
     res = worker.complete_collision_avoid(req)
     print(res.tar_pose)
