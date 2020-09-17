@@ -12,8 +12,8 @@ import time
 from std_msgs.msg import Int32MultiArray
 import os
 # yolo v4 import
-from pushpin_mission.msg import ROI
-from pushpin_mission.msg import ROI_array
+from transparent_mission.msg import ROI
+from transparent_mission.msg import ROI_array
 #ROS message sent format
 from std_msgs.msg import String
 #Hiwin arm api class
