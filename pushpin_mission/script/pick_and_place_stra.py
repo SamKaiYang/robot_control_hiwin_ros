@@ -1,5 +1,5 @@
 #### ros cmd
-#roslaunch transparent_mission pick_and_place_transparent.launch
+#roslaunch pushpin_mission pick_and_place_stra.launch
 import rospy
 import sys
 import time
@@ -275,6 +275,7 @@ def MissionItem(ItemNo):
         Arm_cmd.Arm_Stop,\
         ]
     Key_Get_Image2_Command = [\
+        Arm_cmd.Go_Image1,\
         Arm_cmd.Go_Image2,\
         Arm_cmd.Get_Image,\
         Arm_cmd.Arm_Stop,\
@@ -425,9 +426,16 @@ def MotionItem(ItemNo):
             MotionStep += 1
             break
         if case(Arm_cmd.Go_Image2):
-            CurrentMissionType = MissionType.Get_Img
-            ### test take pic point(2)
-            positon =  [16.8611, 37, -1.5206, -179.725, 10.719, -89.858]
+            CurrentMissionType = MissionType.Get_Img2
+            baseRequest = eye2baseRequest()
+            baseRequest.ini_pose = [boxes.x,boxes.y,camera_z]
+            Get_Image_Point_Base = pixel_z_to_base_client(baseRequest) #[x,y,z]
+            avoidRequest_Get_Image_Point = collision_avoidRequest()
+            avoidRequest_Get_Image_Point.ini_pose = [Get_Image_Point_Base[0]-7,Get_Image_Point_Base[1],Get_Image_Point_Base[2],180,10,0] 
+            avoidRequest_Get_Image_Point.limit = 0.1 # test
+            avoidRequest_Get_Image_Point.dis = 30 # test 
+            Get_Image_Point_base_avoidance = base_avoidance_client(avoidRequest_Get_Image_Point)
+            positon =  [Get_Image_Point_base_avoidance[0], Get_Image_Point_base_avoidance[1], Get_Image_Point_base_avoidance[2], Get_Image_Point_base_avoidance[3], Get_Image_Point_base_avoidance[4], Get_Image_Point_base_avoidance[5]]
             robot_ctr.Step_AbsPTPCmd(positon)
             MotionStep += 1
             break
@@ -518,10 +526,26 @@ if __name__ == '__main__':
 
             GetKeyFlag = True # start strategy
             # Get_Image = 0 ,so first take a photo to see if there are objects
-        while(1):
-            Mission_Trigger()
-            if CurrentMissionType == MissionType.Mission_End:
-                rospy.on_shutdown(myhook)
+        start_input = int(input('For first strategy, press 1, For second strategy, press 2:, For test strategy, press 3'))
+
+        if start_input == 1:
+            while(1):
+                MissionType_Flag = MissionType_Flag.Get_Img2 ## Watch twice
+                Mission_Trigger()
+                if CurrentMissionType == MissionType.Mission_End:
+                    rospy.on_shutdown(myhook)
+        if start_input == 2:
+            while(1):
+                Mission_Trigger() = MissionType_Flag.Get_Img2 ## Watch twice
+                if CurrentMissionType == MissionType.Mission_End:
+                    rospy.on_shutdown(myhook)
+        if start_input == 3:
+            while(1):
+                MissionType_Flag = MissionType.Get_Img
+                Mission_Trigger()
+                if CurrentMissionType == MissionType.Mission_End:
+                    rospy.on_shutdown(myhook)
+
 
         rospy.spin()
     except KeyboardInterrupt:
