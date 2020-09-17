@@ -171,6 +171,11 @@ def Obj_Data_Calculation():  #Enter the number of objects that have been picked 
     baseRequest = eye2baseRequest()
     baseRequest.ini_pose = [boxes.x,boxes.y,camera_z] 
     target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
+    avoidRequest_above = collision_avoidRequest()
+    avoidRequest_above.ini_pose = [target_base[0],target_base[1],target_base[2],180,0,0] 
+    avoidRequest_above.limit = 0.1 # test
+    avoidRequest_above.dis = 15 # test 
+    target_base_above_avoidance = base_avoidance_client(avoidRequest_above)
     avoidRequest = collision_avoidRequest()
     avoidRequest.ini_pose = [target_base[0],target_base[1],target_base[2],180,0,0] 
     avoidRequest.limit = 0.1 # test
@@ -355,7 +360,7 @@ def MotionItem(ItemNo):
             print("Arm_Stop")
             break
         if case(Arm_cmd.MoveToObj_Pick):
-            positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2]+15,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+            positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsPTPCmd(positon)
             positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2],target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
@@ -392,16 +397,20 @@ def MotionItem(ItemNo):
                 # robot_ctr.Step_AbsPTPCmd(positon)
                 Stop_motion_flag = False
             else: # Did not pick up items early
-                positon = [0,0,15,0,0,0] ###rel motion up z+15
-                robot_ctr.Step_RelLineCmd(positon,1,10)
+                positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
+                robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
+                # positon = [0,0,15,0,0,0] ###rel motion up z+15
+                # robot_ctr.Step_RelLineCmd(positon,1,10)
                 # go to take a pic position
-                positon =  [11.9673, 27.95, 10.0213, 179.993, 9.988, -0.487]
-                robot_ctr.Step_AbsPTPCmd(positon)
+                # positon =  [11.9673, 27.95, 10.0213, 179.993, 9.988, -0.487]
+                # robot_ctr.Step_AbsPTPCmd(positon)
                 print("MoveToObj_PickUp")
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToTarget_Place):
             # relate 0 point x+8 y-3 above box z +10
+            positon = [12 ,10, 10, -180,0,0]
+            robot_ctr.Step_AbsPTPCmd(positon)
             positon = [12 ,-3, 10, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
             print("MoveToTarget_Place")
