@@ -156,5 +156,6 @@ if __name__ == "__main__":
     rospy.init_node('tool_axis')
     print(os.name)
     worker = ToolAxis()
+    print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
     # worker.test()
     rospy.spin()

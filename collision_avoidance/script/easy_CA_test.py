@@ -58,8 +58,8 @@ class EasyCATest:
     def easy_CA_client(self, req):
         rospy.wait_for_service('/robot/easy_CA')
         try:
-            hand_eye = rospy.ServiceProxy('/robot/easy_CA', collision_avoid)
-            res = hand_eye(req)
+            ez_ca = rospy.ServiceProxy('/robot/easy_CA', collision_avoid)
+            res = ez_ca(req)
             return res
         except rospy.ServiceException as e:
             print("Service call failed: %s"%e)
@@ -85,7 +85,7 @@ class EasyCATest:
                 self.state = State.take_pic
                 self.arm_move = True
 
-            if self.state == State.take_pic:
+            elif self.state == State.take_pic:
                 robot_ctr.Set_ptp_speed(80)
                 robot_ctr.Step_AbsPTPCmd([16.5, 29.2, 3, -180, 0, 0])
                 if len(self.pos) > 0:
