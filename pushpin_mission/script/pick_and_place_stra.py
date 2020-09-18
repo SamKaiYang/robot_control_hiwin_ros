@@ -172,13 +172,43 @@ def Obj_Data_Calculation():  #Enter the number of objects that have been picked 
     baseRequest = eye2baseRequest()
     baseRequest.ini_pose = [boxes.x,boxes.y,camera_z] 
     target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
+    ## Increase four sides obstacle avoidance, posture conversion 0918
+    ## The inner length and width of the box 59*39cm
+    # Limit 8 cm
+    #general B posture set ,C posture set 
+    C_posture = 0
+    B_posture = 0
+    if target_base[1] >= 43 and target_base[0] >= 31: #ahead #left
+        C_posture = -45
+    elif target_base[1] <= 8 and target_base[0] >= 31: #ahead #right
+        C_posture = -135
+    elif target_base[0] <= 8 and target_base[1] >= 43: #left #rear
+        C_posture = 45
+    elif target_base[0] <= 8 and target_base[1] <= 8:  #right#rear 
+        C_posture = 135
+    elif target_base[1] >= 43: #left
+        C_posture = 0
+    elif target_base[1] <= 8: #right
+        C_posture = -180
+    elif target_base[0] >= 31: #ahead
+        C_posture = -90
+    elif target_base[0] <= 8: #rear  
+        C_posture = 90
+    ### Avoid singularities for pushpin mission
+    if target_base[0] >= 31 and target_base[1] > 30.5 and target_base[1] <= 40.5:
+        B_posture = -20
+    if target_base[0] >= 31 and target_base[1] >= 20.5 and target_base[1] <= 30.5:
+        B_posture = -20
+
+    
+    ## ------0918
     avoidRequest_above = collision_avoidRequest()
-    avoidRequest_above.ini_pose = [target_base[0],target_base[1],target_base[2],180,0,0] 
+    avoidRequest_above.ini_pose = [target_base[0],target_base[1],target_base[2],180,B_posture,C_posture] ##0918
     avoidRequest_above.limit = 0.1 # test
     avoidRequest_above.dis = 15 # test 
     target_base_above_avoidance = base_avoidance_client(avoidRequest_above)
     avoidRequest = collision_avoidRequest()
-    avoidRequest.ini_pose = [target_base[0],target_base[1],target_base[2],180,0,0] 
+    avoidRequest.ini_pose = [target_base[0],target_base[1],target_base[2],180,B_posture,C_posture]  ##0918
     avoidRequest.limit = 0.1 # test
     avoidRequest.dis = 0 # test 
     target_base_avoidance = base_avoidance_client(avoidRequest)
