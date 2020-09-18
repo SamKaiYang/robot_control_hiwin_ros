@@ -10,7 +10,7 @@
 
   <node name="hand" pkg="hand_eye" type="hand_eye_trans.py" > </node>
 
-  <node name="$(arg manipulator_name)_hiwin_robot_driver" pkg="pushpin_mission" type="pick_and_place.py"
+  <node name="$(arg manipulator_name)_hiwin_robot_driver" pkg="pocky_mission" type="pick_and_place.py"
         args="--robot_ip $(arg manipulator_ip) --robot_name $(arg manipulator_name) --log_level $(arg log_level) --control_mode $(arg control_mode)" output="screen">
 
 
