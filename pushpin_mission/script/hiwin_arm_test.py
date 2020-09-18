@@ -1,3 +1,4 @@
+#roslaunch pushpin_mission hiwin_robot_control.launch
 
 import rospy
 import sys
@@ -157,17 +158,35 @@ if __name__ == '__main__':
             # robot_ctr.Set_robot_output(2,False)
             # robot_ctr.Set_robot_output(3,False)
             # robot_ctr.Set_robot_output(4,False)
-            robot_ctr.Set_digital_output(1,True)
+            robot_ctr.Set_digital_output(1,False)
             robot_ctr.Set_digital_output(2,False)
             robot_ctr.Set_digital_output(3,False)
+
+            robot_ctr.Set_override_ratio(100)
+
+            robot_ctr.Set_acc_dec_ratio(100)
+
+            #robot_ctr.Set_ptp_speed(10)
+            a =  robot_ctr.Set_lin_speed(10000)
+            robot_ctr.Set_ptp_speed(60)
+            print("a:",a)
+            Get_ptp_speed = robot_ctr.Get_ptp_speed()
+            Get_lin_speed = robot_ctr.Get_lin_speed()
+            Get_override_ratio = robot_ctr.Get_override_ratio()
+            print("Get_ptp_speed:",Get_ptp_speed)
+            print("Get_lin_speed:",Get_lin_speed)
+            print("Get_override_ratio",Get_override_ratio)
         while(1):
             #test_task()
             #print("boxes:",boxes)
             #robot_ctr.Set_digital_input(2,1)
-            robot_outputs_state = robot_ctr.Get_current_robot_outputs()
-            robot_inputs_state = robot_ctr.Get_current_robot_inputs()
-            digital_output_state = robot_ctr.Get_current_digital_outputs()
+            # robot_outputs_state = robot_ctr.Get_current_robot_outputs()
+            # robot_inputs_state = robot_ctr.Get_current_robot_inputs()
+            # digital_output_state = robot_ctr.Get_current_digital_outputs()
 
+            ArmGernel_Speed = 20
+            LineDown_Speed = 10
+            
             #print("robot outputs state:",robot_outputs_state)
             #print("robot inputs state:",robot_inputs_state)
 

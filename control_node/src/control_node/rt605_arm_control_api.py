@@ -384,7 +384,7 @@ class HiwinRobotInterface(object):
 
     #set arm LINE motion speed
     def Set_lin_speed(self,Speed):
-        self.HRSDKLib.set_lin_speed(c_int(self.robot_id), c_int(Speed))
+        return self.HRSDKLib.set_lin_speed(c_int(self.robot_id), c_double(Speed))
 
     #get arm LINE motion speed
     def Get_lin_speed(self):

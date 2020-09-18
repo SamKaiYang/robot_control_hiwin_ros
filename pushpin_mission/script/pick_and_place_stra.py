@@ -52,8 +52,11 @@ arm_down_pick_flag = False
 Stop_motion_flag = False
 objects_picked_num = 0#Number of objects picked
 
+LineDown_Speed = 3
+ArmGernel_Speed = 5
+
 class Arm_cmd(enum.IntEnum):
-    MoveToObj_Pick = 1
+    MoveToObj_Pick1 = 1
     MoveToTarget_Place = 2
     Absort_ON = 3
     Absort_OFF = 4
@@ -65,6 +68,7 @@ class Arm_cmd(enum.IntEnum):
     Go_Image1 = 10
     Go_Image2 = 11
     Go_back_home = 12
+    MoveToObj_Pick2 = 13
 
 class MissionType(enum.IntEnum):
     Get_Img = 0
@@ -156,7 +160,7 @@ def Yolo_callback(data):
     else:
         for i in range(obj_num):
             boxes.probability = data.ROI_list[i].probability
-            if boxes.probability >=0.9:
+            if boxes.probability >=0.95:
                 boxes.x = data.ROI_list[i].x
                 boxes.y = data.ROI_list[i].y
                 boxes.id_name = data.ROI_list[i].id
@@ -177,38 +181,62 @@ def Obj_Data_Calculation():  #Enter the number of objects that have been picked 
     # Limit 8 cm
     #general B posture set ,C posture set 
     C_posture = 0
-    B_posture = 0
-    if target_base[1] >= 43 and target_base[0] >= 31: #ahead #left
-        C_posture = -45
-    elif target_base[1] <= 8 and target_base[0] >= 31: #ahead #right
-        C_posture = -135
-    elif target_base[0] <= 8 and target_base[1] >= 43: #left #rear
-        C_posture = 45
-    elif target_base[0] <= 8 and target_base[1] <= 8:  #right#rear 
-        C_posture = 135
-    elif target_base[1] >= 43: #left
-        C_posture = 0
-    elif target_base[1] <= 8: #right
-        C_posture = -180
-    elif target_base[0] >= 31: #ahead
-        C_posture = -90
-    elif target_base[0] <= 8: #rear  
-        C_posture = 90
-    ### Avoid singularities for pushpin mission
-    if target_base[0] >= 31 and target_base[1] > 30.5 and target_base[1] <= 40.5:
-        B_posture = -20
-    if target_base[0] >= 31 and target_base[1] >= 20.5 and target_base[1] <= 30.5:
-        B_posture = -20
+    A_posture = 0
+    # tool right
+    # if target_base[1] >= 48.5 and target_base[0] >= 30.5: #ahead #left
+    #     C_posture = -45
+    # elif target_base[1] <= 9 and target_base[0] >= 30.5: #ahead #right
+    #     C_posture = -135
+    # elif target_base[0] <= 9 and target_base[1] >= 48.5: #left #rear
+    #     C_posture = 45
+    # elif target_base[0] <= 9 and target_base[1] <= 9:  #right#rear 
+    #     C_posture = 135
+    # elif target_base[1] >= 48.5: #left
+    #     C_posture = 0
+    # elif target_base[1] <= 9: #right
+    #     C_posture = -180
+    # elif target_base[0] >= 30.5: #ahead
+    #     C_posture = -90
+    # elif target_base[0] <= 9: #rear  
+    #     C_posture = 90
+    # ### Avoid singularities for pushpin mission
+    # if target_base[0] >= 30.5 and target_base[1] > 19.5 and target_base[1] <= 39.5:
+    #     B_posture = -10
+    # if target_base[0] >= 30.5 and target_base[1] >= 19.5 and target_base[1] <= 39.5:
+    #     B_posture = -10
 
-    
+    # tool left
+    if target_base[1] >= 48.5 and target_base[0] >= 30.5: #ahead #left
+        C_posture = 135
+    elif target_base[1] <= 9 and target_base[0] >= 30.5: #ahead #right
+        C_posture = 45
+    elif target_base[0] <= 9 and target_base[1] >= 48.5: #left #rear
+        C_posture = -135
+    elif target_base[0] <= 9 and target_base[1] <= 9:  #right#rear 
+        C_posture = -45
+    elif target_base[1] >= 48.5: #left
+        C_posture = -180
+    elif target_base[1] <= 9: #right
+        C_posture = 0
+    elif target_base[0] >= 30.5: #ahead
+        C_posture = 90
+    elif target_base[0] <= 9: #rear  
+        C_posture = -90
+    ### Avoid singularities for pushpin mission
+    if target_base[0] >= 30.5 and target_base[1] > 19.5 and target_base[1] <= 39.5:
+        A_posture = 10
+    if target_base[0] >= 30.5 and target_base[1] >= 19.5 and target_base[1] <= 39.5:
+        A_posture = 10
+
+    A_posture = 180 + A_posture
     ## ------0918
     avoidRequest_above = collision_avoidRequest()
-    avoidRequest_above.ini_pose = [target_base[0],target_base[1],target_base[2],180,B_posture,C_posture] ##0918
+    avoidRequest_above.ini_pose = [target_base[0],target_base[1],target_base[2],A_posture,0,C_posture] ##0919
     avoidRequest_above.limit = 0.1 # test
     avoidRequest_above.dis = 15 # test 
     target_base_above_avoidance = base_avoidance_client(avoidRequest_above)
     avoidRequest = collision_avoidRequest()
-    avoidRequest.ini_pose = [target_base[0],target_base[1],target_base[2],180,B_posture,C_posture]  ##0918
+    avoidRequest.ini_pose = [target_base[0],target_base[1],target_base[2],A_posture,0,C_posture]  ##0919
     avoidRequest.limit = 0.1 # test
     avoidRequest.dis = 0 # test 
     target_base_avoidance = base_avoidance_client(avoidRequest)
@@ -287,7 +315,8 @@ def Get_MissionType():
 def MissionItem(ItemNo):
     global MotionKey
     Key_PickCommand = [\
-        Arm_cmd.MoveToObj_Pick,\
+        Arm_cmd.MoveToObj_Pick1,\
+        Arm_cmd.MoveToObj_Pick2,\
         #Arm_cmd.Absort_Check,\
         Arm_cmd.MoveToObj_PickUp,\
         Arm_cmd.Absort_Check,\
@@ -296,7 +325,7 @@ def MissionItem(ItemNo):
     Key_PlaceCommand = [\
         Arm_cmd.MoveToTarget_Place,\
         Arm_cmd.Absort_OFF,\
-        Arm_cmd.MoveToTarget_PlaceUp,\
+        # Arm_cmd.MoveToTarget_PlaceUp,\
         Arm_cmd.Arm_Stop,\
         ]
     Key_Get_Image1_Command = [\
@@ -335,7 +364,9 @@ def MissionItem(ItemNo):
 def Execute_Mission():
     global GetInfoFlag,GetKeyFlag,ExecuteFlag,MotionKey,MotionStep,MotionSerialKey,MissionEndFlag,CurrentMissionType,arm_down_pick_flag
     global target_base_avoidance,Stop_motion_flag
-    if arm_down_pick_flag == True :
+    
+    Arm_state = robot_ctr.get_robot_motion_state() ## get arm state
+    if arm_down_pick_flag == True and Arm_state == 2:
         robot_inputs_state = robot_ctr.Get_current_robot_inputs() # Determine whether the object is sucked
         if robot_inputs_state[0] == True:  # is digital IO input 1 pin
             print("Absort success") 
@@ -345,13 +376,12 @@ def Execute_Mission():
             robot_ctr.Stop_motion()  #That is, it is sucked and started to place
             time.sleep(0.2)
 
-            positon = [0,0,15,0,0,0] ###rel motion up z+15
-            robot_ctr.Step_RelLineCmd(positon,1,10)
+            # positon = [0,0,15,0,0,0] ###rel motion up z+15
+            # robot_ctr.Step_RelLineCmd(positon,1,10)
             Stop_motion_flag = True
             arm_down_pick_flag = False
         else:
             pass  # Continue task
-    
     Arm_state = robot_ctr.get_robot_motion_state() ## get arm state
     if Arm_state == 1:  
         if MotionKey[MotionStep] == Arm_cmd.Arm_Stop:
@@ -382,24 +412,40 @@ def Execute_Mission():
             MotionItem(MotionSerialKey[MotionStep])
 def MotionItem(ItemNo):
     global SpeedValue,PushFlag,MissionEndFlag,CurrentMissionType,MotionStep,objects_picked_num,obj_num,MissionType_Flag
-    global target_base_avoidance,target_base_above_avoidance,arm_down_pick_flag,Stop_motion_flag
+    global target_base_avoidance,target_base_above_avoidance,arm_down_pick_flag,Stop_motion_flag,Absort_fail_to_Get_image
+    global LineDown_Speed, ArmGernel_Speed
     for case in switch(ItemNo):
         if case(Arm_cmd.Arm_Stop):
             print("Arm_Stop")
             break
-        if case(Arm_cmd.MoveToObj_Pick):
-            robot_ctr.Set_override_ratio(5) ##add speed
+        # if case(Arm_cmd.MoveToObj_Pick):
+        #     positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
+        #     robot_ctr.Step_AbsPTPCmd(positon)
+        #     robot_ctr.Set_override_ratio(LineDown_Speed) ##speed low
+        #     # positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2],target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+        #     positon = [target_base_avoidance[0],target_base_avoidance[1],-29.9,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+        #     robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
+        #     # print("positon :",positon)
+        #     robot_ctr.Set_override_ratio(ArmGernel_Speed) ##add speed
+        #     arm_down_pick_flag = True
+        #     robot_ctr.Set_digital_output(1,True) # Absort_ON
+        #     print("MoveToObj_Pick")
+        #     MotionStep += 1
+        #     break
+        if case(Arm_cmd.MoveToObj_Pick1):
             positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsPTPCmd(positon)
-            robot_ctr.Set_override_ratio(2) ##speed low
-            # positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2],target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+            print("MoveToObj_Pick1")
+            MotionStep += 1
+            break
+        if case(Arm_cmd.MoveToObj_Pick2):
             positon = [target_base_avoidance[0],target_base_avoidance[1],-29.9,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
-            # print("positon :",positon)
-            robot_ctr.Set_override_ratio(5) ##add speed
+            robot_ctr.Set_override_ratio(LineDown_Speed) ##speed low
+
             arm_down_pick_flag = True
             robot_ctr.Set_digital_output(1,True) # Absort_ON
-            print("MoveToObj_Pick")
+            print("MoveToObj_Pick2")
             MotionStep += 1
             break
         if case(Arm_cmd.Absort_Check):
@@ -422,34 +468,40 @@ def MotionItem(ItemNo):
                 GetKeyFlag = True
                 ExecuteFlag = False
                 MotionStep += 1 # tmp
-            arm_down_pick_flag = False #Initialize the flag to determine the next action 
+            # arm_down_pick_flag = False #Initialize the flag to determine the next action 
             break
         if case(Arm_cmd.MoveToObj_PickUp):
-            time.sleep(0.2)  # pause pick for check sucker ready
+            time.sleep(0.3)  # pause pick for check sucker ready
             if Stop_motion_flag == True: #There are early pick up items
-                Stop_motion_flag = False
-            else: # Did not pick up items early
-                positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
-                robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
-                print("MoveToObj_PickUp")
+                # Stop_motion_flag = False
+                print("Absort success fucccccckkkkk") 
+                # MotionStep += 1
+            # else: # Did not pick up items early
+            positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
+            robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
+            robot_ctr.Set_override_ratio(ArmGernel_Speed)
+            arm_down_pick_flag = False #Initialize the flag to determine the next action 
+            # Stop_motion_flag = False
+            print("MoveToObj_PickUp")
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToTarget_Place):
             # relate 0 point x+8 y-3 above box z +10
-            positon = [12 ,13, 10, -180,0,0]
+            positon = [19.4 ,4.6, 2.1, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
-            positon = [12 ,-10, 10, -180,0,0]
+            positon = [19.4 ,-10, 2.1, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
             print("MoveToTarget_Place")
             MotionStep += 1
             break
         if case(Arm_cmd.Absort_OFF):
             robot_ctr.Set_digital_output(1,False)
+            time.sleep(0.1)
             print("Absort_OFF")
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToTarget_PlaceUp):
-            positon = [12 ,10, 10, -180,0,0]
+            positon = [19.4 ,4.6, 2.1, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
             MotionStep += 1
             break
@@ -478,14 +530,15 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.Get_Image):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic
-            time.sleep(0.2) # Delayed time to see
+            time.sleep(0.3) # Delayed time to see
             Obj_Data_Calculation()
             if obj_num == 0: # If you don't see the object,Mission End
                 MissionType_Flag = MissionType.Mission_End
+                # robot_ctr.Stop_motion()  #That is, it is sucked and started to place
                 print("mission end")
             else: # Have seen the object, take the action
                 MissionType_Flag = MissionType.Pick
-                print("Get_Image success")
+                # print("Get_Image success")
             
             '''''''''''
             1.If the area object is not finished
@@ -553,8 +606,15 @@ if __name__ == '__main__':
             robot_ctr.Set_tool_number(14) #pushpin tool
 
             robot_ctr.Set_operation_mode(1)
-            robot_ctr.Set_override_ratio(5)
+            
+            ArmGernel_Speed = 100
+            LineDown_Speed = 10
+            robot_ctr.Set_override_ratio(ArmGernel_Speed)
+
             robot_ctr.Set_acc_dec_ratio(100)
+
+            # robot_ctr.Set_ptp_speed(20)
+            # robot_ctr.Set_lin_speed(10)
 
             robot_ctr.Set_digital_output(1,False)
             robot_ctr.Set_digital_output(2,False)
