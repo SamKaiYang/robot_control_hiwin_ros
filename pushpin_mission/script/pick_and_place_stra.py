@@ -112,43 +112,7 @@ class bounding_boxes():
         self.data = []
 
 boxes = bounding_boxes(0,0,0,0,0)
-# YOLO V4 input
-# def Yolo_callback(data):
-#     global obj_num,pick_obj_times
-#     check_obj_count = 0
-#     obj_num = len((data.ROI_list))
-#     if obj_num == 0:
-#         print("No Object Found!")
-#         print("change method to Realsense!")
-#     elif obj_num != 0 and next_take_yolo_flag == True:
-#         next_take_yolo_flag = False
-#         for i in range(obj_num):
-#             boxes.probability = data.ROI_list[i].probability
-#             if boxes.probability >=0.9:
-#                 boxes.x = data.ROI_list[i].x
-#                 boxes.y = data.ROI_list[i].y
-#                 boxes.id_name = data.ROI_list[i].id
-#                 boxes.Class_name = data.ROI_list[i].object_name
 
-#                 boxes.x = data.ROI_list[i].x
-#                 boxes.y = data.ROI_list[i].y
-#                 boxes.id_name = data.ROI_list[i].id
-#                 boxes.Class_name = data.ROI_list[i].object_name
-#                 boxes.add(boxes.x,boxes.y)
-#                 check_obj_count += 1
-#             pick_obj_times = check_obj_count ###Number of detected objects
-
-# def Obj_Data_Calculation(obj_times):  #Enter the number of objects that have been picked and place
-#     global objects_picked_num
-#     baseRequest = eye2baseRequest()
-#     baseRequest.ini_pose = [boxes.data[objects_picked_num][0],boxes[objects_picked_num][1],camera_z] 
-#     target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
-#     avoidRequest = collision_avoidRequest()
-#     avoidRequest.ini_pose = [target_base[0],target_base[1],target_base[2],180,0,0] 
-#     avoidRequest.limit = 0.1 # test
-#     avoidRequest.dis = 10 # test 
-#     target_base_avoidance = base_avoidance_client(avoidRequest)
-#     objects_picked_num += 1 #Plus one
 def Yolo_callback(data):
     global obj_num,pick_obj_times
     check_obj_count = 0
@@ -224,9 +188,9 @@ def Obj_Data_Calculation():  #Enter the number of objects that have been picked 
         C_posture = -90
     ### Avoid singularities for pushpin mission
     if target_base[0] >= 30.5 and target_base[1] > 19.5 and target_base[1] <= 39.5:
-        A_posture = 10
+        A_posture = 20
     if target_base[0] >= 30.5 and target_base[1] >= 19.5 and target_base[1] <= 39.5:
-        A_posture = 10
+        A_posture = 20
 
     A_posture = 180 + A_posture
     ## ------0918
@@ -240,8 +204,6 @@ def Obj_Data_Calculation():  #Enter the number of objects that have been picked 
     avoidRequest.limit = 0.1 # test
     avoidRequest.dis = 0 # test 
     target_base_avoidance = base_avoidance_client(avoidRequest)
-    # print("target_base:",target_base)
-    # print("target_base_avoidance:",target_base_avoidance)
 def pixel_z_to_base_client(pixel_to_base):
     rospy.wait_for_service('robot/pix2base')
     try:
@@ -286,8 +248,6 @@ def Get_MissionType():
         if case(MissionType.Place):
             Type = MissionType.Place
             MissionType_Flag = MissionType.Get_Img
-            ####MissionType_Flag -=1
-            ###
             '''''
             1. Do you want to continue to absorb # Determine the number of objects picked up
             
@@ -300,11 +260,9 @@ def Get_MissionType():
             break
         if case(MissionType.Get_Img):
             Type = MissionType.Get_Img
-            #MissionType_Flag -=1
             break
         if case(MissionType.Get_Img2):
             Type = MissionType.Get_Img2
-            #MissionType_Flag -=1
             break
         if case(MissionType.Mission_End):
             Type = MissionType.Mission_End
@@ -317,7 +275,6 @@ def MissionItem(ItemNo):
     Key_PickCommand = [\
         Arm_cmd.MoveToObj_Pick1,\
         Arm_cmd.MoveToObj_Pick2,\
-        #Arm_cmd.Absort_Check,\
         Arm_cmd.MoveToObj_PickUp,\
         Arm_cmd.Absort_Check,\
         Arm_cmd.Arm_Stop,\
@@ -325,7 +282,6 @@ def MissionItem(ItemNo):
     Key_PlaceCommand = [\
         Arm_cmd.MoveToTarget_Place,\
         Arm_cmd.Absort_OFF,\
-        # Arm_cmd.MoveToTarget_PlaceUp,\
         Arm_cmd.Arm_Stop,\
         ]
     Key_Get_Image1_Command = [\
@@ -376,8 +332,6 @@ def Execute_Mission():
             robot_ctr.Stop_motion()  #That is, it is sucked and started to place
             time.sleep(0.2)
 
-            # positon = [0,0,15,0,0,0] ###rel motion up z+15
-            # robot_ctr.Step_RelLineCmd(positon,1,10)
             Stop_motion_flag = True
             arm_down_pick_flag = False
         else:
@@ -418,20 +372,6 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.Arm_Stop):
             print("Arm_Stop")
             break
-        # if case(Arm_cmd.MoveToObj_Pick):
-        #     positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
-        #     robot_ctr.Step_AbsPTPCmd(positon)
-        #     robot_ctr.Set_override_ratio(LineDown_Speed) ##speed low
-        #     # positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2],target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
-        #     positon = [target_base_avoidance[0],target_base_avoidance[1],-29.9,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
-        #     robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
-        #     # print("positon :",positon)
-        #     robot_ctr.Set_override_ratio(ArmGernel_Speed) ##add speed
-        #     arm_down_pick_flag = True
-        #     robot_ctr.Set_digital_output(1,True) # Absort_ON
-        #     print("MoveToObj_Pick")
-        #     MotionStep += 1
-        #     break
         if case(Arm_cmd.MoveToObj_Pick1):
             positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsPTPCmd(positon)
@@ -452,9 +392,6 @@ def MotionItem(ItemNo):
             robot_inputs_state = robot_ctr.Get_current_robot_inputs() # Determine whether the object is sucked
             if robot_inputs_state[0] == True:  # is digital IO input 1 pin
                 print("Absort success check and mission continue") 
-                '''''
-                Draw success plus one
-                '''''
                 MotionStep += 1
             else:
                 print("Absort fail and mission continue to Get image")
@@ -468,7 +405,6 @@ def MotionItem(ItemNo):
                 GetKeyFlag = True
                 ExecuteFlag = False
                 MotionStep += 1 # tmp
-            # arm_down_pick_flag = False #Initialize the flag to determine the next action 
             break
         if case(Arm_cmd.MoveToObj_PickUp):
             time.sleep(0.3)  # pause pick for check sucker ready
@@ -481,12 +417,10 @@ def MotionItem(ItemNo):
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
             arm_down_pick_flag = False #Initialize the flag to determine the next action 
-            # Stop_motion_flag = False
             print("MoveToObj_PickUp")
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToTarget_Place):
-            # relate 0 point x+8 y-3 above box z +10
             positon = [19.4 ,4.6, 2.1, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
             positon = [19.4 ,-10, 2.1, -180,0,0]
@@ -612,10 +546,6 @@ if __name__ == '__main__':
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(100)
-
-            # robot_ctr.Set_ptp_speed(20)
-            # robot_ctr.Set_lin_speed(10)
-
             robot_ctr.Set_digital_output(1,False)
             robot_ctr.Set_digital_output(2,False)
             robot_ctr.Set_digital_output(3,False)
