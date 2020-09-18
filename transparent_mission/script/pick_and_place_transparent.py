@@ -1,5 +1,5 @@
 #### ros cmd
-#roslaunch pushpin_mission pick_and_place_stra.launch
+#roslaunch transparent_mission pick_and_place_transparent.launch
 import rospy
 import sys
 import time
@@ -40,7 +40,7 @@ CurrentMissionType = 0
 arm_move_times = 1
 
 ###---pixel z to base data init
-camera_z = 52
+camera_z = 53 
 
 ## strategy data init 
 obj_num = 0
@@ -287,7 +287,7 @@ def Execute_Mission():
             Draw success plus one
             '''''
             robot_ctr.Stop_motion()  #That is, it is sucked and started to place
-            time.sleep(0.2)
+            time.sleep(0.1)
 
             Stop_motion_flag = True
             arm_down_pick_flag = False
@@ -336,7 +336,7 @@ def MotionItem(ItemNo):
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToObj_Pick2):
-            positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2],target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+            positon = [target_base_avoidance[0],target_base_avoidance[1],-26,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
             robot_ctr.Set_override_ratio(LineDown_Speed) ##speed low
 
@@ -364,7 +364,7 @@ def MotionItem(ItemNo):
                 MotionStep += 1 # tmp
             break
         if case(Arm_cmd.MoveToObj_PickUp):
-            time.sleep(0.3)  # pause pick for check sucker ready
+            # time.sleep(0.3)  # pause pick for check sucker ready
             if Stop_motion_flag == True: #There are early pick up items
                 # Stop_motion_flag = False
                 print("Absort success fucccccckkkkk") 
@@ -378,9 +378,9 @@ def MotionItem(ItemNo):
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToTarget_Place):
-            positon = [12 ,13, 10, -180,0,0]
+            positon = [16.2 ,10, 10, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
-            positon = [12 ,-10, 10, -180,0,0]
+            positon = [16.2 ,-11.3, 10, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
             print("MoveToTarget_Place")
             MotionStep += 1
@@ -392,14 +392,14 @@ def MotionItem(ItemNo):
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToTarget_PlaceUp):
-            positon = [12 ,10, 10, -180,0,0]
+            positon = [16.2 ,10, 10, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
             MotionStep += 1
             break
         if case(Arm_cmd.Go_Image1):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic point(1)
-            positon =  [11.3440, 26.4321, 2.7427, 179.994, 10.002, -0.488]
+            positon =  [11.3440, 26.4321, 11.23, 179.994, 10.002, -0.488]
             robot_ctr.Step_AbsPTPCmd(positon)
             # time.sleep(20) ### test 9/16
             MotionStep += 1
@@ -498,8 +498,8 @@ if __name__ == '__main__':
 
             robot_ctr.Set_operation_mode(1)
             
-            ArmGernel_Speed = 10
-            LineDown_Speed = 3
+            ArmGernel_Speed = 100
+            LineDown_Speed = 10
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(100)
