@@ -51,9 +51,11 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
    FILES
-   ROI_array.msg
-   ROI.msg
-   
+   ROI_array_bottom.msg
+   ROI_bottom.msg
+   ROI_array_top.msg
+   ROI_top.msg
+   vision_state.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -61,6 +63,7 @@ add_service_files(
   FILES
   aruco_info.srv
   hand_eye_calibration.srv
+  pocky_data.srv
 #  get_curr_pos.srv
 #  Service2.srv
 )
