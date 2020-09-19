@@ -59,6 +59,7 @@ add_service_files(
   aruco_info.srv
   hand_eye_calibration.srv
   eye2base.srv
+  save_pcd.srv
 #  get_curr_pos.srv
 #  Service2.srv
 )

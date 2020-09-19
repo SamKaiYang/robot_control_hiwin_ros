@@ -1,0 +1,7 @@
+string    name
+bool      save_mix
+float64[] curr_trans
+
+---
+
+bool  done
