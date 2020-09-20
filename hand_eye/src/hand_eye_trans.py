@@ -42,12 +42,16 @@ class HandEyeTrans:
                 eye2base,
                 self.__down_pix2base_transform
         )
-        self.down_cam_trans = np.mat([[0, -1, 0, 0.18],
-                                      [1, 0, 0, 0.24],
+        self.__pis2base_server = rospy.Service('robot/fix_cam2base',
+                eye2base,
+                self.__fix_pix2base_transform
+        )
+        self.down_cam_trans = np.mat([[0, -1, 0, 0.153],
+                                      [1, 0, 0, 0.305],
                                       [0, 0, 1, -0.89],
                                       [0, 0, 0, 1]])
 
-        self.down_cam_obj_z = 0.57
+        self.down_cam_obj_z = 0.6
 
     def __get_camera_param(self):
         curr_path = os.path.dirname(os.path.abspath(__file__))
@@ -140,10 +144,25 @@ class HandEyeTrans:
     def __down_pix2base_transform(self, req):
         self.__get_robot_trans()
         eye_obj_trans = np.mat(np.append(np.array(req.ini_pose), [self.down_cam_obj_z, 1])).reshape(4, 1)
-        eye_obj_trans[2] = eye_obj_trans[2] * 0.01
         eye_obj_trans[:2] = (eye_obj_trans[:2] - self._camera_mat[:2, 2:]) * eye_obj_trans[2]
         eye_obj_trans[:2] = np.multiply(eye_obj_trans[:2], [[1/self._camera_mat[0, 0]], [1/self._camera_mat[1, 1]]])
         result = self.down_cam_trans * eye_obj_trans
+        res = eye2baseResponse()
+        res.tar_pose = np.array(np.multiply(result[:3], 100)).reshape(-1)
+        return res
+
+    def __fix_pix2base_transform(self, req):
+        # self.__get_robot_trans()
+        positon =  [11.3440, 36.4321, 11.23, 179.994, 10.002, -0.488]
+        abc = [radians(i) for i in positon[3:]]
+        base_cam_trans = np.mat(np.identity(4))
+        base_cam_trans[0:3, 0:3] = tf.transformations.euler_matrix(abc[0], abc[1], abc[2], axes='sxyz')[0:3, 0:3]
+        base_cam_trans[0:3, 3:] = np.mat([i/100 for i in positon[:3]]).reshape(3, 1)
+        eye_obj_trans = np.mat(np.append(np.array(req.ini_pose), 1)).reshape(4, 1)
+        eye_obj_trans[2] = eye_obj_trans[2] * 0.01
+        eye_obj_trans[:2] = (eye_obj_trans[:2] - self._camera_mat[:2, 2:]) * eye_obj_trans[2]
+        eye_obj_trans[:2] = np.multiply(eye_obj_trans[:2], [[1/self._camera_mat[0, 0]], [1/self._camera_mat[1, 1]]])
+        result = base_cam_trans * np.linalg.inv(self._rtool_tool_trans) * self._rtool_eye_trans * eye_obj_trans
         res = eye2baseResponse()
         res.tar_pose = np.array(np.multiply(result[:3], 100)).reshape(-1)
         return res

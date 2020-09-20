@@ -11,12 +11,6 @@ import enum
 import time
 from std_msgs.msg import Int32MultiArray
 import os
-# yolo v4 import
-# from pocky_mission.msg import ROI_bottom
-# from pocky_mission.msg import ROI_top
-# from pocky_mission.msg import ROI_array_bottom
-# from pocky_mission.msg import ROI_array_top
-# from pocky_mission.msg import vision_state
 #ROS message sent format
 from std_msgs.msg import String
 #Hiwin arm api class
@@ -24,7 +18,7 @@ from control_node import HiwinRobotInterface
 #pixel_z to base
 from hand_eye.srv import eye2base, eye2baseRequest
 #pocky strategy data srv
-from pocky_mission.srv import pocky_data, pocky_dataResponse
+from pocky_mission.srv import pocky_data, pocky_dataRequest
 DEBUG = True  # Set True to show debug log, False to hide it.
 ItemNo = 0
 positon = [0.0,0.0,10.0,-180,0,0]
@@ -43,12 +37,13 @@ arm_move_times = 1
 
 ###---pixel z to base data init
 #To be tested
-bottom_camera_z = 53
-top_camera_z = 53
-
+#bottom_camera_z = 53
+single_camera_z = 56.5
+double_camera_z = 54
+bottom_count = 0
+top_count = 0
 ## strategy data init 
-bottom_boxes_List = []
-top_boxes_List = []
+
 pick_obj_times = 0
 target_base = []
 target_down_base = []
@@ -72,6 +67,7 @@ class Arm_cmd(enum.IntEnum):
     Go_Image1 = 10
     Go_back_home = 12
     MoveToObj_Pick2 = 13
+    MoveToTarget_above = 14
 
 class MissionType(enum.IntEnum):
     Get_Img = 0
@@ -99,50 +95,26 @@ class switch(object):
         else:
             return False
 
-# class top_boxes_class():
-#     def __init__(self,top_box,top_CenterX,top_CenterY,top_Angle):
-#         self.top_box = top_box
-#         self.top_CenterX = top_CenterX
-#         self.top_CenterY = top_CenterY
-#         self.top_Angle = top_Angle
-#         self.data = []
-#     def add(self):
-#         self.data.append([x,y])
-#     def remove_data(self):
-#         self.data = []
-
-# top_boxes = top_boxes_class(0,0,0,0)
-
-# class bottom_boxes_class():
-#     def __init__(self,bottom_box,bottom_CenterX,bottom_CenterY,bottom_Angle):
-#         self.bottom_box = bottom_box
-#         self.bottom_CenterX = bottom_CenterX
-#         self.bottom_CenterY = bottom_CenterY
-#         self.bottom_Angle = bottom_Angle
-#         self.data = []
-#     def add(self):
-#         self.data.append([x,y])
-#     def remove_data(self):
-#         self.data = []
-
-# bottom_boxes = bottom_boxes_class(0,0,0,0)
-
-
 def Obj_Data_Calculation(pixel_x,pixel_y,camera_z):  #Enter the number of objects that have been picked and place
     global target_base
+    # print("pixel_x:",pixel_x)
+    # print("pixel_y:",pixel_y)
+    # print("camera_z:",camera_z)
     baseRequest = eye2baseRequest()
     baseRequest.ini_pose = [pixel_x,pixel_y,camera_z] ## test
     target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
+    print("target_base:",target_base)
+
 def Obj_Data_Calculation_down(pixel_x,pixel_y):  #Enter the number of objects that have been picked and place
     global target_down_base
     baseRequest = eye2baseRequest()
     baseRequest.ini_pose = [pixel_x,pixel_y] ## test
     target_down_base = down_camera_to_base_client(baseRequest) #[x,y]
-
+    print("target_down_base:",target_down_base)
 def pixel_z_to_base_client(pixel_to_base):
-    rospy.wait_for_service('robot/pix2base')
+    rospy.wait_for_service('robot/fix_cam2base')
     try:
-        pixel_z_to_base = rospy.ServiceProxy('robot/pix2base', eye2base)
+        pixel_z_to_base = rospy.ServiceProxy('robot/fix_cam2base', eye2base)
         resp1 = pixel_z_to_base(pixel_to_base)
         return resp1.tar_pose
     except rospy.ServiceException as e:
@@ -157,10 +129,10 @@ def down_camera_to_base_client(pixel_to_base):
         print("Service call failed: %s"%e)
 
 def pocky_data_client(data):
-    rospy.wait_for_service('pocky_service')
+    rospy.wait_for_service('/pocky_service')
     try:
-        pocky_data = rospy.ServiceProxy('pocky_service', pocky_data_sent)
-        resp = pocky_data(data)
+        pocky_ = rospy.ServiceProxy('/pocky_service', pocky_data)
+        resp = pocky_(data)
         return resp
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
@@ -186,13 +158,16 @@ def Get_MissionType():
         if case(MissionType.Pick):
             Type = MissionType.Pick
             MissionType_Flag = MissionType.Place
+            print("place mission")
             break
         if case(MissionType.Place):
             Type = MissionType.Place
             MissionType_Flag = MissionType.Pick
+            print("pick mission")
             break
         if case(MissionType.Get_Img):
             Type = MissionType.Get_Img
+            print("Get image mission")
             break
         if case(MissionType.Mission_End):
             Type = MissionType.Mission_End
@@ -213,6 +188,7 @@ def MissionItem(ItemNo):
         Arm_cmd.MoveToTarget_PlaceUp,\
         Arm_cmd.MoveToTarget_Place,\
         Arm_cmd.Absort_OFF,\
+        Arm_cmd.MoveToTarget_above,\
         Arm_cmd.Arm_Stop,\
         ]
     Key_Get_Image1_Command = [\
@@ -241,7 +217,7 @@ def MissionItem(ItemNo):
 
 def Execute_Mission():
     global GetInfoFlag,GetKeyFlag,ExecuteFlag,MotionKey,MotionStep,MotionSerialKey,MissionEndFlag,CurrentMissionType,arm_down_pick_flag
-    global target_base_avoidance,Stop_motion_flag
+    global target_base,target_down_base,Stop_motion_flag
     
     Arm_state = robot_ctr.get_robot_motion_state() ## get arm state
     if arm_down_pick_flag == True and Arm_state == 2:
@@ -267,12 +243,10 @@ def Execute_Mission():
                 GetKeyFlag = True
                 ExecuteFlag = False
                 MotionStep = 0
-                print("Pick")
             elif CurrentMissionType == MissionType.Place:
                 GetKeyFlag = True
                 ExecuteFlag = False
                 MotionStep = 0
-                print("Place")
             elif CurrentMissionType == MissionType.Get_Img:
                 GetKeyFlag = True
                 ExecuteFlag = False
@@ -281,9 +255,9 @@ def Execute_Mission():
             MotionItem(MotionSerialKey[MotionStep])
 def MotionItem(ItemNo):
     global SpeedValue,PushFlag,MissionEndFlag,CurrentMissionType,MotionStep,objects_picked_num,MissionType_Flag
-    global target_base_avoidance,target_base_above_avoidance,arm_down_pick_flag,Stop_motion_flag,Absort_fail_to_Get_image
+    global target_down_base,target_base,arm_down_pick_flag,Stop_motion_flag,Absort_fail_to_Get_image
     global LineDown_Speed, ArmGernel_Speed
-    global bottom_boxes_List,top_boxes_List
+    global bottom_count,top_count
     for case in switch(ItemNo):
         if case(Arm_cmd.Arm_Stop):
             print("Arm_Stop")
@@ -291,48 +265,61 @@ def MotionItem(ItemNo):
         ## To be tested
         if case(Arm_cmd.MoveToObj_Pick1):
             pocky = pocky_data_client(1)
-            if len(pocky.bottom_box) != 0:
-                if pocky.bottom_box[0] == 'WP':
-                    positon = [0,0,10,180,0,0]
+            print(pocky)
+            print("bottom_count:",bottom_count)
+            print("top_count:",top_count)
+            if bottom_count < len(pocky.bottom_box):
+                if pocky.bottom_box[bottom_count] == 'WP':
+                    positon = [2.9792,-28.4870,(-29.8462+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
-                elif pocky.bottom_box[0] == 'GP':
-                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
+                elif pocky.bottom_box[bottom_count] == 'GP':
+                    positon = [22.0686,-22.9382,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
-                elif pocky.bottom_box[0] == 'Y':
-                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
+                elif pocky.bottom_box[bottom_count] == 'Y':
+                    positon = [22.0686,-4.3049,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
-                elif pocky.bottom_box[0] == 'G':
-                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
+                elif pocky.bottom_box[bottom_count] == 'G':
+                    positon = [22.0686,-13.1650,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
-                elif pocky.bottom_box[0] == 'W':
-                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
+                elif pocky.bottom_box[bottom_count] == 'W':
+                    positon = [2.9792,-18.8779,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
-                elif pocky.bottom_box[0] == 'R':
-                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
+                elif pocky.bottom_box[bottom_count] == 'R':
+                    positon = [2.9792,-8.8964,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
-            if len(pocky.top_box) == 0 and len(pocky.top_box) != 0:
-                if pocky.top_box[0] == 'WP':
-                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
+                print("MoveToObj_bottom_box_Pick1")
+            elif bottom_count == len(pocky.bottom_box) and top_count < len(pocky.top_box):
+                if pocky.top_box[top_count] == 'WP':
+                    positon = [2.9792,-28.4870,(-29.8462+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
-                elif pocky.top_box[0] == 'GP':
-                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
+                elif pocky.top_box[top_count] == 'GP':
+                    positon = [22.0686,-22.9382,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
-                elif pocky.top_box[0] == 'Y':
-                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
+                elif pocky.top_box[top_count] == 'Y':
+                    positon = [22.0686,-4.3049,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
-                elif pocky.top_box[0] == 'G':
-                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
+                elif pocky.top_box[top_count] == 'G':
+                    positon = [22.0686,-13.1650,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
-                elif pocky.top_box[0] == 'W':
-                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
+                elif pocky.top_box[top_count] == 'W':
+                    positon = [2.9792,-18.8779,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
-                elif pocky.top_box[0] == 'R':
-                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
+                elif pocky.top_box[top_count] == 'R':
+                    positon = [2.9792,-8.8964,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
-            elif len(pocky.top_box) == 0 and len(pocky.top_box) == 0:
-                robot_ctr.Get_operation_mode(0)
-                robot_ctr.Go_home()
-            print("MoveToObj_Pick1")
+                    robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
+                print("MoveToObj_top_box_Pick1")
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToObj_Pick2):
@@ -356,12 +343,9 @@ def MotionItem(ItemNo):
                 MotionStep += 1 # tmp
             break
         if case(Arm_cmd.MoveToObj_PickUp):
-            if Stop_motion_flag == True: #There are early pick up items
-                print("Absort success fucccccckkkkk") 
-            # else: # Did not pick up items early
-            positon = [0,0,10,0,0,0] 
+            positon = [0,0,15,0,0,0] 
             robot_ctr.Step_RelLineCmd(positon,0,10)
-            robot_ctr.Set_override_ratio(ArmGernel_Speed)
+            robot_ctr.Set_override_ratio(LineDown_Speed)
             arm_down_pick_flag = False #Initialize the flag to determine the next action 
             print("MoveToObj_PickUp")
             MotionStep += 1
@@ -370,6 +354,7 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.MoveToTarget_Place):
             positon = [0 ,0, -10, 0,0,0]
             robot_ctr.Step_RelLineCmd(positon)
+            robot_ctr.Set_override_ratio(LineDown_Speed) ##speed low
             print("MoveToTarget_Place")
             MotionStep += 1
             break
@@ -377,43 +362,57 @@ def MotionItem(ItemNo):
             robot_ctr.Set_digital_output(1,False)
             time.sleep(0.1)
             print("Absort_OFF")
+            pocky = pocky_data_client(1)
+            if bottom_count == len(pocky.bottom_box) and top_count == len(pocky.top_box):
+                MissionType_Flag = MissionType.Mission_End
+                bottom_count = 0
+                top_count = 0
+                print("mission end")
             MotionStep += 1
             break
         ## To be tested
         if case(Arm_cmd.MoveToTarget_PlaceUp):
             pocky = pocky_data_client(1)
 
-            if len(pocky.bottom_box) != 0:
-                Obj_Data_Calculation_down(pocky.bottom_CenterX[0],pocky.bottom_CenterY[0])
-                positon = [target_down_base[0],target_down_base[1],target_down_base[2] + 10,180,0,pocky.bottom_Angle[0]] ## Z test
+            if bottom_count < len(pocky.bottom_box):
+                Obj_Data_Calculation_down(pocky.bottom_CenterX[bottom_count],pocky.bottom_CenterY[bottom_count])
+                positon = [target_down_base[0]+9,target_down_base[1]-32,-19.6414,180,0,pocky.bottom_Angle[bottom_count]] ## Z test
                 robot_ctr.Step_AbsPTPCmd(positon)
-                #delete bottom 1 object
-                del pocky.bottom_box[0]
-                del pocky.bottom_CenterX[0]
-                del pocky.bottom_CenterY[0]
-                del pocky.bottom_Angle[0]
-            elif len(pocky.bottom_box) == 0 and len(pocky.top_box) != 0:
-                Obj_Data_Calculation(pocky.top_CenterX[0],pocky.top_CenterY[0],top_camera_z)
-                positon = [target_base[0],target_base[1],target_base[2]+10,180,0,pocky.top_Angle[0]] ## Z test
+                robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
+                bottom_count += 1
+                print("MoveToTarget_bottom_box_PlaceUp")
+            elif bottom_count == len(pocky.bottom_box) and top_count < len(pocky.top_box):
+                # strategy double
+                if bottom_count > 0:
+                    Obj_Data_Calculation(pocky.top_CenterX[top_count],pocky.top_CenterY[top_count],double_camera_z)
+                    positon = [target_base[0]+9,target_base[1]-32,-17,180,0,pocky.top_Angle[top_count]] ## Z test 
+                # strategy single
+                else:
+                    Obj_Data_Calculation(pocky.top_CenterX[top_count],pocky.top_CenterY[top_count],single_camera_z)
+                    positon = [target_base[0]+9,target_base[1]-32,-19.6414,180,0,pocky.top_Angle[top_count]] ## Z test 
                 robot_ctr.Step_AbsPTPCmd(positon)
-                #delete top 1 object
-                del pocky.top_box[0]
-                del pocky.top_CenterX[0]
-                del pocky.top_CenterY[0]
-                del pocky.top_Angle[0]
-            elif len(pocky.bottom_box) == 0 and len(pocky.top_box) == 0:
-                MissionType_Flag = MissionType.Mission_End
-                # robot_ctr.Stop_motion()  #That is, it is sucked and started to place
-                print("mission end")
+                robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
+                top_count +=1
+                print("MoveToTarget_top_box_PlaceUp")
+            MotionStep += 1
+            break
+        ## To be tested
+        if case(Arm_cmd.MoveToTarget_above):
+            positon = [0 ,0, 15, 0,0,0]
+            robot_ctr.Step_RelLineCmd(positon)
+            robot_ctr.Set_override_ratio(LineDown_Speed) ##speed low
+            print("MoveToTarget_above")
             MotionStep += 1
             break
         if case(Arm_cmd.Go_Image1):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic point(1)
-            positon =  [11.3440, 26.4321, 11.23, 179.994, 10.002, -0.488]
+            positon =  [11.3440, 36.4321, 11.23, 179.994, 10.002, -0.488]
             robot_ctr.Step_AbsPTPCmd(positon)
+            robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
             # time.sleep(20) ### test 9/16
             MotionStep += 1
+            print("Go_Image1")
             break
         if case(Arm_cmd.Get_Image):
             CurrentMissionType = MissionType.Get_Img
@@ -423,10 +422,12 @@ def MotionItem(ItemNo):
             if pocky.is_done == True:
                 MissionType_Flag = MissionType.Pick
                 MotionStep += 1
+            print("Get_Image")
             break
         if case(Arm_cmd.Go_back_home):
-            robot_ctr.Set_operation_mode(0)
-            robot_ctr.Go_home()
+            positon =  [11.3440, 36.4321, 11.23, 179.994, 10.002, -0.488]
+            robot_ctr.Step_AbsPTPCmd(positon)
+            robot_ctr.Set_override_ratio(10) ##speed add
             print("MissionEnd")
             MotionStep += 1
             break
@@ -470,11 +471,6 @@ if __name__ == '__main__':
     robot_ctr = HiwinRobotInterface(robot_ip=robot_ip, connection_level=control_mode,name=robot_name)
     robot_ctr.connect()
 
-    rate = rospy.Rate(10) # 10hz
-    a = rospy.Subscriber("top_obj_data",ROI_array_bottom,bottom_obj_data_callback)
-    b = rospy.Subscriber("bottom_obj_data",ROI_array_top,top_obj_data_callback)
-    vision = rospy.Subscriber("vision_state",vision_state,vision_state_callback)
-
     ## strategy trigger
     try:
         if robot_ctr.is_connected():
@@ -484,8 +480,8 @@ if __name__ == '__main__':
 
             robot_ctr.Set_operation_mode(1)
             
-            ArmGernel_Speed = 5
-            LineDown_Speed = 3
+            ArmGernel_Speed = 10
+            LineDown_Speed = 5
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(100)
@@ -495,7 +491,7 @@ if __name__ == '__main__':
 
             GetKeyFlag = True # start strategy
             # Get_Image = 0 ,so first take a photo to see if there are objects
-        start_input = int(input('For first strategy, press 1 For pocky service test, press 2 \n'))
+        start_input = int(input('For first strategy, press 1 \nFor pocky service test, press 2 \n Go camera position, press 3\n'))
 
         if start_input == 1:
             while(1):
@@ -503,10 +499,29 @@ if __name__ == '__main__':
                 if CurrentMissionType == MissionType.Mission_End:
                     rospy.on_shutdown(myhook)
         if start_input == 2:
+            pocky = pocky_data_client(1)
+            List = []
+            LLL = list(pocky.top_CenterX)
             while(1):
-                aa = pocky_data_client(1)
-                print(aa)
-
+                # List = list(pocky)
+                #LLL = list(pocky.top_CenterX)
+                print(LLL)
+                # del pocky.top_box[0]
+                del LLL[0]
+                print (LLL)
+                # del pocky.top_CenterY[0]
+                # del pocky.top_Angle[0]
+                print('len:',len(pocky.top_box) )
+                print(pocky.top_box)
+                # print('fuck')
+                # q = pocky_dataRequest()
+                # q.request_flag = 1
+                # print('fuckUU')
+                # print(pocky)
+        if start_input == 3:
+            positon =  [11.3440, 36.4321, 11.23, 179.994, 10.002, -0.488]
+            robot_ctr.Step_AbsPTPCmd(positon)
+            print("Go_Image")
         rospy.spin()
     except KeyboardInterrupt:
         robot_ctr.Set_motor_state(0)

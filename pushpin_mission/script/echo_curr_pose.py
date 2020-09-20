@@ -11,7 +11,7 @@ if __name__ == "__main__":
     # set tool & base coor
     tool_coor = [0,0,0,0,0,0]
     base_coor = [0,0,0,0,0,0]
-    robot_ctr.Set_base_number(31)
+    robot_ctr.Set_base_number(5)
     # base_result = robot_ctr.Define_base(1,base_coor)
     robot_ctr.Set_tool_number(15)
     # tool_result = robot_ctr.Define_tool(1,tool_coor)
