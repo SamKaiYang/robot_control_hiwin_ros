@@ -44,17 +44,16 @@ arm_move_times = 1
 ###---pixel z to base data init
 #To be tested
 bottom_camera_z = 53
-top_camera_z = 55
-# camera_z = 53 
+top_camera_z = 53
 
 ## strategy data init 
 bottom_boxes_List = []
 top_boxes_List = []
 pick_obj_times = 0
 target_base = []
+target_down_base = []
 arm_down_pick_flag = False
 Stop_motion_flag = False
-vision_state_flag = False
 objects_picked_num = 0#Number of objects picked
 
 LineDown_Speed = 3
@@ -100,77 +99,58 @@ class switch(object):
         else:
             return False
 
-class top_boxes_class():
-    def __init__(self,top_box,top_CenterX,top_CenterY,top_Angle):
-        self.top_box = top_box
-        self.top_CenterX = top_CenterX
-        self.top_CenterY = top_CenterY
-        self.top_Angle = top_Angle
-        self.data = []
-    def add(self):
-        self.data.append([x,y])
-    def remove_data(self):
-        self.data = []
+# class top_boxes_class():
+#     def __init__(self,top_box,top_CenterX,top_CenterY,top_Angle):
+#         self.top_box = top_box
+#         self.top_CenterX = top_CenterX
+#         self.top_CenterY = top_CenterY
+#         self.top_Angle = top_Angle
+#         self.data = []
+#     def add(self):
+#         self.data.append([x,y])
+#     def remove_data(self):
+#         self.data = []
 
-top_boxes = top_boxes_class(0,0,0,0)
+# top_boxes = top_boxes_class(0,0,0,0)
 
-class bottom_boxes_class():
-    def __init__(self,bottom_box,bottom_CenterX,bottom_CenterY,bottom_Angle):
-        self.bottom_box = bottom_box
-        self.bottom_CenterX = bottom_CenterX
-        self.bottom_CenterY = bottom_CenterY
-        self.bottom_Angle = bottom_Angle
-        self.data = []
-    def add(self):
-        self.data.append([x,y])
-    def remove_data(self):
-        self.data = []
+# class bottom_boxes_class():
+#     def __init__(self,bottom_box,bottom_CenterX,bottom_CenterY,bottom_Angle):
+#         self.bottom_box = bottom_box
+#         self.bottom_CenterX = bottom_CenterX
+#         self.bottom_CenterY = bottom_CenterY
+#         self.bottom_Angle = bottom_Angle
+#         self.data = []
+#     def add(self):
+#         self.data.append([x,y])
+#     def remove_data(self):
+#         self.data = []
 
-bottom_boxes = bottom_boxes_class(0,0,0,0)
+# bottom_boxes = bottom_boxes_class(0,0,0,0)
 
-# def top_obj_data_callback(data):
-#     global top_boxes_List,add_top_data_flag
-#     obj_num = len((data.ROI_top_list))
-#     if obj_num == 0:
-#         print("change method to Realsense!")
-#     else:
-#         if add_top_data_flag == True:
-#             for i in range(obj_num):
-#                 top_boxes.top_box = data.ROI_top_list[i].top_box
-#                 top_boxes.top_CenterX = data.ROI_top_list[i].top_CenterX
-#                 top_boxes.top_CenterY = data.ROI_top_list[i].top_CenterY
-#                 top_boxes.top_Angle = data.ROI_top_list[i].top_Angle
-#                 top_boxes_List.append(top_boxes)
-#             add_top_data_flag == False
-
-# def bottom_obj_data_callback(data):
-#     global bottom_boxes_List,add_bottom_data_flag
-#     obj_num = len((data.ROI_bottom_list))
-#     if obj_num == 0:
-#         print("change method to Realsense!")
-#     else:
-#         if add_bottom_data_flag == True:
-#             for i in range(obj_num):
-#                 bottom_boxes.bottom_box = data.ROI_bottom_list[i].bottom_box
-#                 bottom_boxes.bottom_CenterX = data.ROI_bottom_list[i].bottom_CenterX
-#                 bottom_boxes.bottom_CenterY = data.ROI_bottom_list[i].bottom_CenterY
-#                 bottom_boxes.bottom_Angle = data.ROI_bottom_list[i].bottom_Angle
-#                 bottom_boxes_List.append(bottom_boxes)
-#             add_bottom_data_flag == False
-# def vision_state_callback(data):
-#     global vision_state_flag 
-#     vision_state_flag = data.state
 
 def Obj_Data_Calculation(pixel_x,pixel_y,camera_z):  #Enter the number of objects that have been picked and place
-    global objects_picked_num,target_base
+    global target_base
     baseRequest = eye2baseRequest()
     baseRequest.ini_pose = [pixel_x,pixel_y,camera_z] ## test
     target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
+def Obj_Data_Calculation_down(pixel_x,pixel_y):  #Enter the number of objects that have been picked and place
+    global target_down_base
+    baseRequest = eye2baseRequest()
+    baseRequest.ini_pose = [pixel_x,pixel_y] ## test
+    target_down_base = down_camera_to_base_client(baseRequest) #[x,y]
 
 def pixel_z_to_base_client(pixel_to_base):
     rospy.wait_for_service('robot/pix2base')
     try:
         pixel_z_to_base = rospy.ServiceProxy('robot/pix2base', eye2base)
+        resp1 = pixel_z_to_base(pixel_to_base)
+        return resp1.tar_pose
+    except rospy.ServiceException as e:
+        print("Service call failed: %s"%e)
+def down_camera_to_base_client(pixel_to_base):
+    rospy.wait_for_service('robot/down_cam2base')
+    try:
+        pixel_z_to_base = rospy.ServiceProxy('robot/down_cam2base', eye2base)
         resp1 = pixel_z_to_base(pixel_to_base)
         return resp1.tar_pose
     except rospy.ServiceException as e:
@@ -292,7 +272,7 @@ def Execute_Mission():
                 GetKeyFlag = True
                 ExecuteFlag = False
                 MotionStep = 0
-                print("Pick")
+                print("Place")
             elif CurrentMissionType == MissionType.Get_Img:
                 GetKeyFlag = True
                 ExecuteFlag = False
@@ -310,44 +290,48 @@ def MotionItem(ItemNo):
             break
         ## To be tested
         if case(Arm_cmd.MoveToObj_Pick1):
-            # if len(bottom_List) != 0:
-            #     if bottom_List[0][0] == 'WP':
-            #         positon = [0,0,10,180,0,0]
-            #         robot_ctr.Step_AbsPTPCmd(positon)
-            #     elif bottom_List[0][0] == 'GP':
-            #         positon = [0,0,10,180,0,0]
-            #         robot_ctr.Step_AbsPTPCmd(positon)
-            #     elif bottom_List[0][0] == 'Y':
-            #         positon = [0,0,10,180,0,0]
-            #         robot_ctr.Step_AbsPTPCmd(positon)
-            #     elif bottom_List[0][0] == 'G':
-            #         positon = [0,0,10,180,0,0]
-            #         robot_ctr.Step_AbsPTPCmd(positon)
-            #     elif bottom_List[0][0] == 'W':
-            #         positon = [0,0,10,180,0,0]
-            #         robot_ctr.Step_AbsPTPCmd(positon)
-            #     elif bottom_List[0][0] == 'R':
-            #         positon = [0,0,10,180,0,0]
-            #         robot_ctr.Step_AbsPTPCmd(positon)
-            # if len(top_List) != 0:
-            #     if top_List[0][0] == 'WP':
-            #         positon = [0,0,10,180,0,0]
-            #         robot_ctr.Step_AbsPTPCmd(positon)
-            #     elif top_List[0][0] == 'GP':
-            #         positon = [0,0,10,180,0,0]
-            #         robot_ctr.Step_AbsPTPCmd(positon)
-            #     elif top_List[0][0] == 'Y':
-            #         positon = [0,0,10,180,0,0]
-            #         robot_ctr.Step_AbsPTPCmd(positon)
-            #     elif top_List[0][0] == 'G':
-            #         positon = [0,0,10,180,0,0]
-            #         robot_ctr.Step_AbsPTPCmd(positon)
-            #     elif top_List[0][0] == 'W':
-            #         positon = [0,0,10,180,0,0]
-            #         robot_ctr.Step_AbsPTPCmd(positon)
-            #     elif top_List[0][0] == 'R':
-            #         positon = [0,0,10,180,0,0]
-            #         robot_ctr.Step_AbsPTPCmd(positon)
+            pocky = pocky_data_client(1)
+            if len(pocky.bottom_box) != 0:
+                if pocky.bottom_box[0] == 'WP':
+                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Step_AbsPTPCmd(positon)
+                elif pocky.bottom_box[0] == 'GP':
+                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Step_AbsPTPCmd(positon)
+                elif pocky.bottom_box[0] == 'Y':
+                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Step_AbsPTPCmd(positon)
+                elif pocky.bottom_box[0] == 'G':
+                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Step_AbsPTPCmd(positon)
+                elif pocky.bottom_box[0] == 'W':
+                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Step_AbsPTPCmd(positon)
+                elif pocky.bottom_box[0] == 'R':
+                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Step_AbsPTPCmd(positon)
+            if len(pocky.top_box) == 0 and len(pocky.top_box) != 0:
+                if pocky.top_box[0] == 'WP':
+                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Step_AbsPTPCmd(positon)
+                elif pocky.top_box[0] == 'GP':
+                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Step_AbsPTPCmd(positon)
+                elif pocky.top_box[0] == 'Y':
+                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Step_AbsPTPCmd(positon)
+                elif pocky.top_box[0] == 'G':
+                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Step_AbsPTPCmd(positon)
+                elif pocky.top_box[0] == 'W':
+                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Step_AbsPTPCmd(positon)
+                elif pocky.top_box[0] == 'R':
+                    positon = [0,0,10,180,0,0]
+                    robot_ctr.Step_AbsPTPCmd(positon)
+            elif len(pocky.top_box) == 0 and len(pocky.top_box) == 0:
+                robot_ctr.Get_operation_mode(0)
+                robot_ctr.Go_home()
             print("MoveToObj_Pick1")
             MotionStep += 1
             break
@@ -369,9 +353,6 @@ def MotionItem(ItemNo):
             else:
                 print("Absort fail and mission continue to Get image")
                 robot_ctr.Set_digital_output(1,False) # Absort_OFF
-                # MissionType_Flag =  MissionType.Get_Img
-                # GetKeyFlag = True
-                # ExecuteFlag = False
                 MotionStep += 1 # tmp
             break
         if case(Arm_cmd.MoveToObj_PickUp):
@@ -400,23 +381,30 @@ def MotionItem(ItemNo):
             break
         ## To be tested
         if case(Arm_cmd.MoveToTarget_PlaceUp):
-             
-            # if len(bottom_List) != 0:
-            #     Obj_Data_Calculation(bottom_List[0][1],bottom_List[0][2],bottom_camera_z)
-            #     positon = [target_base[0],target_base[1],0,180,0,bottom_List[0][3]] ## Z test
-            #     robot_ctr.Step_AbsPTPCmd(positon)
-            #     #delete bottom 1 object
-            #     del bottom_List[0]
-            # if len(bottom_List) == 0 and len(top_List) != 0:
-            #     Obj_Data_Calculation(top_List[0][1],top_List[0][2],top_camera_z)
-            #     positon = [target_base[0],target_base[1],0,180,0,top_List[0][3]] ## Z test
-            #     robot_ctr.Step_AbsPTPCmd(positon)
-            #     #delete top 1 object
-            #     del top_List[0]
-            # elif len(bottom_List) == 0 and len(top_List) == 0:
-            #     MissionType_Flag = MissionType.Mission_End
-            #     # robot_ctr.Stop_motion()  #That is, it is sucked and started to place
-            #     print("mission end")
+            pocky = pocky_data_client(1)
+
+            if len(pocky.bottom_box) != 0:
+                Obj_Data_Calculation_down(pocky.bottom_CenterX[0],pocky.bottom_CenterY[0])
+                positon = [target_down_base[0],target_down_base[1],target_down_base[2] + 10,180,0,pocky.bottom_Angle[0]] ## Z test
+                robot_ctr.Step_AbsPTPCmd(positon)
+                #delete bottom 1 object
+                del pocky.bottom_box[0]
+                del pocky.bottom_CenterX[0]
+                del pocky.bottom_CenterY[0]
+                del pocky.bottom_Angle[0]
+            elif len(pocky.bottom_box) == 0 and len(pocky.top_box) != 0:
+                Obj_Data_Calculation(pocky.top_CenterX[0],pocky.top_CenterY[0],top_camera_z)
+                positon = [target_base[0],target_base[1],target_base[2]+10,180,0,pocky.top_Angle[0]] ## Z test
+                robot_ctr.Step_AbsPTPCmd(positon)
+                #delete top 1 object
+                del pocky.top_box[0]
+                del pocky.top_CenterX[0]
+                del pocky.top_CenterY[0]
+                del pocky.top_Angle[0]
+            elif len(pocky.bottom_box) == 0 and len(pocky.top_box) == 0:
+                MissionType_Flag = MissionType.Mission_End
+                # robot_ctr.Stop_motion()  #That is, it is sucked and started to place
+                print("mission end")
             MotionStep += 1
             break
         if case(Arm_cmd.Go_Image1):
@@ -431,14 +419,10 @@ def MotionItem(ItemNo):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic
             time.sleep(0.3) # Delayed time to see
-            # add_bottom_data_flag = True
-            # add_top_data_flag = True
-            if vision_state_flag == True:
-                # bottom_List = bottom_boxes_List
-                # top_List = top_boxes_List
+            pocky = pocky_data_client(1)
+            if pocky.is_done == True:
                 MissionType_Flag = MissionType.Pick
                 MotionStep += 1
-                # vision_state_flag = False
             break
         if case(Arm_cmd.Go_back_home):
             robot_ctr.Set_operation_mode(0)
@@ -500,8 +484,8 @@ if __name__ == '__main__':
 
             robot_ctr.Set_operation_mode(1)
             
-            ArmGernel_Speed = 100
-            LineDown_Speed = 10
+            ArmGernel_Speed = 5
+            LineDown_Speed = 3
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(100)
