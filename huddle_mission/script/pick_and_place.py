@@ -330,7 +330,7 @@ def MotionItem(ItemNo):
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToObj_Pick2):
-            positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2],target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+            positon = [target_base_avoidance[0],target_base_avoidance[1],-29.65,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
             robot_ctr.Set_override_ratio(LineDown_Speed) ##speed low
 
@@ -439,20 +439,26 @@ def MotionItem(ItemNo):
             ###test 0921
             print("take obj data")
             huddle = huddle_data_client(1)
-            print("fuckkkkkkk")
-            Obj_Data_Calculation(huddle.center_point_x,huddle.center_point_y,huddle.center_point_z)
-            print("fuckkkkkkk")
+            # print("fuckkkkkkk")
+            # Obj_Data_Calculation(huddle.center_point_x,huddle.center_point_y,huddle.center_point_z)
+            # print("fuckkkkkkk")
             # if huddle.multiple_sauce_type == True: #Choose to see twice strategy
             #     MissionType_Flag = 
-            label_name = huddle.sauce_class
+            # label_name = huddle.sauce_class
             ###test 0921
-            if len(huddle.sauce_class) == 0: # If you don't see the object,Mission End
-                MissionType_Flag = MissionType.Mission_End
-                # robot_ctr.Stop_motion()  #That is, it is sucked and started to place
-                print("mission end")
-            else: # Have seen the object, take the action
+            if huddle.is_done == True:
+                Obj_Data_Calculation(huddle.center_point_x,huddle.center_point_y,huddle.center_point_z)
+                label_name = huddle.sauce_class
                 MissionType_Flag = MissionType.Pick
-                # print("Get_Image success")
+                MotionStep += 1
+                print("Get_Image")
+                if len(huddle.sauce_class) == 0: # If you don't see the object,Mission End
+                    MissionType_Flag = MissionType.Mission_End
+                    # robot_ctr.Stop_motion()  #That is, it is sucked and started to place
+                    print("mission end")
+            # else: # Have seen the object, take the action
+            #     MissionType_Flag = MissionType.Pick
+            #     # print("Get_Image success")
             
 
             # time.sleep(20)
@@ -463,7 +469,7 @@ def MotionItem(ItemNo):
             3.If next photo spot is elso noing, end of mission
             If ob_num == 0
             '''''''''''
-            MotionStep += 1
+            # MotionStep += 1
             break
         if case(Arm_cmd.Go_back_home):
             robot_ctr.Set_operation_mode(0)
@@ -523,8 +529,8 @@ if __name__ == '__main__':
 
             robot_ctr.Set_operation_mode(1)
             
-            ArmGernel_Speed = 3
-            LineDown_Speed = 2
+            ArmGernel_Speed = 10
+            LineDown_Speed = 5
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(100)

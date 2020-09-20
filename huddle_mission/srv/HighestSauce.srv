@@ -6,3 +6,4 @@ string sauce_class
 float64 center_point_x
 float64 center_point_y
 float64 center_point_z
+bool is_done
