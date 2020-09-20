@@ -12,11 +12,11 @@ import time
 from std_msgs.msg import Int32MultiArray
 import os
 # yolo v4 import
-from pocky_mission.msg import ROI_bottom
-from pocky_mission.msg import ROI_top
-from pocky_mission.msg import ROI_array_bottom
-from pocky_mission.msg import ROI_array_top
-from pocky_mission.msg import vision_state
+# from pocky_mission.msg import ROI_bottom
+# from pocky_mission.msg import ROI_top
+# from pocky_mission.msg import ROI_array_bottom
+# from pocky_mission.msg import ROI_array_top
+# from pocky_mission.msg import vision_state
 #ROS message sent format
 from std_msgs.msg import String
 #Hiwin arm api class
@@ -24,7 +24,7 @@ from control_node import HiwinRobotInterface
 #pixel_z to base
 from hand_eye.srv import eye2base, eye2baseRequest
 #pocky strategy data srv
-from pocky_mission.srv import pocky_data, pocky_dataRequest
+from pocky_mission.srv import pocky_data, pocky_dataResponse
 DEBUG = True  # Set True to show debug log, False to hide it.
 ItemNo = 0
 positon = [0.0,0.0,10.0,-180,0,0]
@@ -128,38 +128,38 @@ class bottom_boxes_class():
 
 bottom_boxes = bottom_boxes_class(0,0,0,0)
 
-def top_obj_data_callback(data):
-    global top_boxes_List,add_top_data_flag
-    obj_num = len((data.ROI_top_list))
-    if obj_num == 0:
-        print("change method to Realsense!")
-    else:
-        if add_top_data_flag == True:
-            for i in range(obj_num):
-                top_boxes.top_box = data.ROI_top_list[i].top_box
-                top_boxes.top_CenterX = data.ROI_top_list[i].top_CenterX
-                top_boxes.top_CenterY = data.ROI_top_list[i].top_CenterY
-                top_boxes.top_Angle = data.ROI_top_list[i].top_Angle
-                top_boxes_List.append(top_boxes)
-            add_top_data_flag == False
+# def top_obj_data_callback(data):
+#     global top_boxes_List,add_top_data_flag
+#     obj_num = len((data.ROI_top_list))
+#     if obj_num == 0:
+#         print("change method to Realsense!")
+#     else:
+#         if add_top_data_flag == True:
+#             for i in range(obj_num):
+#                 top_boxes.top_box = data.ROI_top_list[i].top_box
+#                 top_boxes.top_CenterX = data.ROI_top_list[i].top_CenterX
+#                 top_boxes.top_CenterY = data.ROI_top_list[i].top_CenterY
+#                 top_boxes.top_Angle = data.ROI_top_list[i].top_Angle
+#                 top_boxes_List.append(top_boxes)
+#             add_top_data_flag == False
 
-def bottom_obj_data_callback(data):
-    global bottom_boxes_List,add_bottom_data_flag
-    obj_num = len((data.ROI_bottom_list))
-    if obj_num == 0:
-        print("change method to Realsense!")
-    else:
-        if add_bottom_data_flag == True:
-            for i in range(obj_num):
-                bottom_boxes.bottom_box = data.ROI_bottom_list[i].bottom_box
-                bottom_boxes.bottom_CenterX = data.ROI_bottom_list[i].bottom_CenterX
-                bottom_boxes.bottom_CenterY = data.ROI_bottom_list[i].bottom_CenterY
-                bottom_boxes.bottom_Angle = data.ROI_bottom_list[i].bottom_Angle
-                bottom_boxes_List.append(bottom_boxes)
-            add_bottom_data_flag == False
-def vision_state_callback(data):
-    global vision_state_flag 
-    vision_state_flag = data.state
+# def bottom_obj_data_callback(data):
+#     global bottom_boxes_List,add_bottom_data_flag
+#     obj_num = len((data.ROI_bottom_list))
+#     if obj_num == 0:
+#         print("change method to Realsense!")
+#     else:
+#         if add_bottom_data_flag == True:
+#             for i in range(obj_num):
+#                 bottom_boxes.bottom_box = data.ROI_bottom_list[i].bottom_box
+#                 bottom_boxes.bottom_CenterX = data.ROI_bottom_list[i].bottom_CenterX
+#                 bottom_boxes.bottom_CenterY = data.ROI_bottom_list[i].bottom_CenterY
+#                 bottom_boxes.bottom_Angle = data.ROI_bottom_list[i].bottom_Angle
+#                 bottom_boxes_List.append(bottom_boxes)
+#             add_bottom_data_flag == False
+# def vision_state_callback(data):
+#     global vision_state_flag 
+#     vision_state_flag = data.state
 
 def Obj_Data_Calculation(pixel_x,pixel_y,camera_z):  #Enter the number of objects that have been picked and place
     global objects_picked_num,target_base
@@ -173,6 +173,15 @@ def pixel_z_to_base_client(pixel_to_base):
         pixel_z_to_base = rospy.ServiceProxy('robot/pix2base', eye2base)
         resp1 = pixel_z_to_base(pixel_to_base)
         return resp1.tar_pose
+    except rospy.ServiceException as e:
+        print("Service call failed: %s"%e)
+
+def pocky_data_client(data):
+    rospy.wait_for_service('pocky_service')
+    try:
+        pocky_data = rospy.ServiceProxy('pocky_service', pocky_data_sent)
+        resp = pocky_data(data)
+        return resp
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
 
@@ -301,44 +310,44 @@ def MotionItem(ItemNo):
             break
         ## To be tested
         if case(Arm_cmd.MoveToObj_Pick1):
-            if len(bottom_List) != 0:
-                if bottom_List[0][0] == 'WP':
-                    positon = [0,0,10,180,0,0]
-                    robot_ctr.Step_AbsPTPCmd(positon)
-                elif bottom_List[0][0] == 'GP':
-                    positon = [0,0,10,180,0,0]
-                    robot_ctr.Step_AbsPTPCmd(positon)
-                elif bottom_List[0][0] == 'Y':
-                    positon = [0,0,10,180,0,0]
-                    robot_ctr.Step_AbsPTPCmd(positon)
-                elif bottom_List[0][0] == 'G':
-                    positon = [0,0,10,180,0,0]
-                    robot_ctr.Step_AbsPTPCmd(positon)
-                elif bottom_List[0][0] == 'W':
-                    positon = [0,0,10,180,0,0]
-                    robot_ctr.Step_AbsPTPCmd(positon)
-                elif bottom_List[0][0] == 'R':
-                    positon = [0,0,10,180,0,0]
-                    robot_ctr.Step_AbsPTPCmd(positon)
-            if len(top_List) != 0:
-                if top_List[0][0] == 'WP':
-                    positon = [0,0,10,180,0,0]
-                    robot_ctr.Step_AbsPTPCmd(positon)
-                elif top_List[0][0] == 'GP':
-                    positon = [0,0,10,180,0,0]
-                    robot_ctr.Step_AbsPTPCmd(positon)
-                elif top_List[0][0] == 'Y':
-                    positon = [0,0,10,180,0,0]
-                    robot_ctr.Step_AbsPTPCmd(positon)
-                elif top_List[0][0] == 'G':
-                    positon = [0,0,10,180,0,0]
-                    robot_ctr.Step_AbsPTPCmd(positon)
-                elif top_List[0][0] == 'W':
-                    positon = [0,0,10,180,0,0]
-                    robot_ctr.Step_AbsPTPCmd(positon)
-                elif top_List[0][0] == 'R':
-                    positon = [0,0,10,180,0,0]
-                    robot_ctr.Step_AbsPTPCmd(positon)
+            # if len(bottom_List) != 0:
+            #     if bottom_List[0][0] == 'WP':
+            #         positon = [0,0,10,180,0,0]
+            #         robot_ctr.Step_AbsPTPCmd(positon)
+            #     elif bottom_List[0][0] == 'GP':
+            #         positon = [0,0,10,180,0,0]
+            #         robot_ctr.Step_AbsPTPCmd(positon)
+            #     elif bottom_List[0][0] == 'Y':
+            #         positon = [0,0,10,180,0,0]
+            #         robot_ctr.Step_AbsPTPCmd(positon)
+            #     elif bottom_List[0][0] == 'G':
+            #         positon = [0,0,10,180,0,0]
+            #         robot_ctr.Step_AbsPTPCmd(positon)
+            #     elif bottom_List[0][0] == 'W':
+            #         positon = [0,0,10,180,0,0]
+            #         robot_ctr.Step_AbsPTPCmd(positon)
+            #     elif bottom_List[0][0] == 'R':
+            #         positon = [0,0,10,180,0,0]
+            #         robot_ctr.Step_AbsPTPCmd(positon)
+            # if len(top_List) != 0:
+            #     if top_List[0][0] == 'WP':
+            #         positon = [0,0,10,180,0,0]
+            #         robot_ctr.Step_AbsPTPCmd(positon)
+            #     elif top_List[0][0] == 'GP':
+            #         positon = [0,0,10,180,0,0]
+            #         robot_ctr.Step_AbsPTPCmd(positon)
+            #     elif top_List[0][0] == 'Y':
+            #         positon = [0,0,10,180,0,0]
+            #         robot_ctr.Step_AbsPTPCmd(positon)
+            #     elif top_List[0][0] == 'G':
+            #         positon = [0,0,10,180,0,0]
+            #         robot_ctr.Step_AbsPTPCmd(positon)
+            #     elif top_List[0][0] == 'W':
+            #         positon = [0,0,10,180,0,0]
+            #         robot_ctr.Step_AbsPTPCmd(positon)
+            #     elif top_List[0][0] == 'R':
+            #         positon = [0,0,10,180,0,0]
+            #         robot_ctr.Step_AbsPTPCmd(positon)
             print("MoveToObj_Pick1")
             MotionStep += 1
             break
@@ -392,22 +401,22 @@ def MotionItem(ItemNo):
         ## To be tested
         if case(Arm_cmd.MoveToTarget_PlaceUp):
              
-            if len(bottom_List) != 0:
-                Obj_Data_Calculation(bottom_List[0][1],bottom_List[0][2],bottom_camera_z)
-                positon = [target_base[0],target_base[1],0,180,0,bottom_List[0][3]] ## Z test
-                robot_ctr.Step_AbsPTPCmd(positon)
-                #delete bottom 1 object
-                del bottom_List[0]
-            if len(bottom_List) == 0 and len(top_List) != 0:
-                Obj_Data_Calculation(top_List[0][1],top_List[0][2],top_camera_z)
-                positon = [target_base[0],target_base[1],0,180,0,top_List[0][3]] ## Z test
-                robot_ctr.Step_AbsPTPCmd(positon)
-                #delete top 1 object
-                del top_List[0]
-            elif len(bottom_List) == 0 and len(top_List) == 0:
-                MissionType_Flag = MissionType.Mission_End
-                # robot_ctr.Stop_motion()  #That is, it is sucked and started to place
-                print("mission end")
+            # if len(bottom_List) != 0:
+            #     Obj_Data_Calculation(bottom_List[0][1],bottom_List[0][2],bottom_camera_z)
+            #     positon = [target_base[0],target_base[1],0,180,0,bottom_List[0][3]] ## Z test
+            #     robot_ctr.Step_AbsPTPCmd(positon)
+            #     #delete bottom 1 object
+            #     del bottom_List[0]
+            # if len(bottom_List) == 0 and len(top_List) != 0:
+            #     Obj_Data_Calculation(top_List[0][1],top_List[0][2],top_camera_z)
+            #     positon = [target_base[0],target_base[1],0,180,0,top_List[0][3]] ## Z test
+            #     robot_ctr.Step_AbsPTPCmd(positon)
+            #     #delete top 1 object
+            #     del top_List[0]
+            # elif len(bottom_List) == 0 and len(top_List) == 0:
+            #     MissionType_Flag = MissionType.Mission_End
+            #     # robot_ctr.Stop_motion()  #That is, it is sucked and started to place
+            #     print("mission end")
             MotionStep += 1
             break
         if case(Arm_cmd.Go_Image1):
@@ -422,14 +431,14 @@ def MotionItem(ItemNo):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic
             time.sleep(0.3) # Delayed time to see
-            add_bottom_data_flag = True
-            add_top_data_flag = True
+            # add_bottom_data_flag = True
+            # add_top_data_flag = True
             if vision_state_flag == True:
-                bottom_List = bottom_boxes_List
-                top_List = top_boxes_List
+                # bottom_List = bottom_boxes_List
+                # top_List = top_boxes_List
                 MissionType_Flag = MissionType.Pick
                 MotionStep += 1
-                vision_state_flag = False
+                # vision_state_flag = False
             break
         if case(Arm_cmd.Go_back_home):
             robot_ctr.Set_operation_mode(0)
@@ -502,13 +511,17 @@ if __name__ == '__main__':
 
             GetKeyFlag = True # start strategy
             # Get_Image = 0 ,so first take a photo to see if there are objects
-        start_input = int(input('For first strategy, press 1 \n'))
+        start_input = int(input('For first strategy, press 1 For pocky service test, press 2 \n'))
 
         if start_input == 1:
             while(1):
                 Mission_Trigger()
                 if CurrentMissionType == MissionType.Mission_End:
                     rospy.on_shutdown(myhook)
+        if start_input == 2:
+            while(1):
+                aa = pocky_data_client(1)
+                print(aa)
 
         rospy.spin()
     except KeyboardInterrupt:

@@ -113,7 +113,7 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES pushpin_mission
+  LIBRARIES pocky_mission
   CATKIN_DEPENDS message_generation roscpp rospy std_msgs
   DEPENDS system_lib
 )

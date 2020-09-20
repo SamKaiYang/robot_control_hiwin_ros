@@ -7,40 +7,17 @@ from collision_avoidance.srv import collision_avoid, collision_avoidRequest
 from hand_eye.srv import eye2base, eye2baseRequest
 from hand_eye.srv import save_pcd, save_pcdRequest
 
-pic_pos = [
-[5,  0.5,  -20, -180, 0, 0],
-[10, 0.5,  -20, -180, 0, 0],
-[15, 0.5,  -20, -180, 0, 0],
-[20, 0.5,  -20, -180, 0, 0],
-[25, 0.5,  -20, -180, 0, 0],
-[30, 0.5,  -20, -180, 0, 0],
-[39, 0.5,  -20, -180, 0, 0],
-[39, 10, -20, -180, 0, 0],
-[39, 15, -20, -180, 0, 0],
-[39, 20, -20, -180, 0, 0],
-[39, 25, -20, -180, 0, 0],
-[39, 30, -20, -180, 0, 0],
-[39, 35, -20, -180, 0, 0],
-[39, 40, -20, -180, 0, 0],
-[39, 45, -20, -180, 0, 0],
-[39, 50, -20, -180, 0, 0],
-[39, 58.2, -20, -180, 0, 0],
-[30, 58.2, -20, -180, 0, 0],
-[25, 58.2, -20, -180, 0, 0],
-[20, 58.2, -20, -180, 0, 0],
-[15, 58.2, -20, -180, 0, 0],
-[10, 58.2, -20, -180, 0, 0],
-[1.2, 58.2,  -20, -180, 0, 0],
-[1.2, 50,  -20, -180, 0, 0],
-[1.2, 45,  -20, -180, 0, 0],
-[1.2, 40,  -20, -180, 0, 0],
-[1.2, 35,  -20, -180, 0, 0],
-[1.2, 30,  -20, -180, 0, 0],
-[1.2, 25,  -20, -180, 0, 0],
-[1.2, 20,  -20, -180, 0, 0],
-[1.2, 15,  -20, -180, 0, 0],
-[1.2, 10,  -20, -180, 0, 0],
-[1.2, 5,   -20, -180, 0, 0]]
+pic_pos = \
+[[11.5333, 27.6935, 14.078700000000001, 179.948, 10.215, -0.04],
+[11.119, 11.5573, 14.078700000000001, -155.677, 9.338, 4.16],
+[11.119, 45.8423, 15.5243, 162.071, 8.982, -2.503],
+[20.0209, 29.7892, 13.6829, -179.401, 20.484, 0.484],
+[-1.6163, 27.2584, 10.5365, 178.176, -5.075, -0.821],
+[11.2913, 30.077499999999997, 3.8148000000000004, 176.897, 9.752, -0.733],
+[11.2913, 48.3532, 0.1746, 147.166, 8.127, -5.457],
+[11.2913, 14.063300000000002, -1.8908999999999998, -136.398, 7.255, 6.574],
+[7.5134, 26.818099999999998, -2.06, 179.442, -22.966, -0.352],
+[20.6853, 26.818099999999998, 0.048799999999999996, 179.502, 41.557, -0.951]]
 
 class Arm_status(enum.IntEnum):
     Idle = 1
@@ -60,7 +37,7 @@ class EasyCATest:
     def hand_eye_client(self, req):
         rospy.wait_for_service('/robot/eye_trans2base')
         try:
-            ez_ca = rospy.ServiceProxy('/robot/eye_trans2base', collision_avoid)
+            ez_ca = rospy.ServiceProxy('/robot/eye_trans2base', eye2base)
             res = ez_ca(req)
             return res
         except rospy.ServiceException as e:
@@ -69,7 +46,7 @@ class EasyCATest:
     def get_pcd_client(self, req):
         rospy.wait_for_service('/get_pcd')
         try:
-            ez_ca = rospy.ServiceProxy('/get_pcd', collision_avoid)
+            ez_ca = rospy.ServiceProxy('/get_pcd', save_pcd)
             res = ez_ca(req)
             return res
         except rospy.ServiceException as e:
@@ -87,17 +64,18 @@ class EasyCATest:
                 
                 print(pos)
                 robot_ctr.Set_ptp_speed(10)
-                robot_ctr.Step_AbsLine_PosCmd(pos)
+                robot_ctr.Step_AbsPTPCmd(pos)
                 self.pos = np.delete(self.pos, 0, 0)
                 self.state = State.take_pic
                 self.arm_move = True
 
             elif self.state == State.take_pic:
+                time.sleep(1)
                 req = eye2baseRequest()
-                req.ini_pose = [0,0,0,0,0,0,]
+                req.ini_pose = np.array(np.identity(4)).reshape(-1)
                 trans = self.hand_eye_client(req).tar_pose
                 req = save_pcdRequest()
-                req.curr_trans = trans
+                req.curr_trans = np.array(trans)
                 req.name = 'mdfk'                               
                 if len(self.pos) > 0:
                     self.state = State.move
@@ -119,10 +97,10 @@ if __name__ == "__main__":
     base_coor = [0,0,0,0,0,0]
     robot_ctr.Set_base_number(5)
     # base_result = robot_ctr.Define_base(1,base_coor)
-    robot_ctr.Set_tool_number(15)
+    robot_ctr.Set_tool_number(10)
     # tool_result = robot_ctr.Define_tool(1,tool_coor)
     robot_ctr.Set_operation_mode(1)
-    robot_ctr.Set_override_ratio(20)
+    robot_ctr.Set_override_ratio(100)
     poses = []
     strtage = EasyCATest()
     while strtage.state != State.finish and not rospy.is_shutdown():

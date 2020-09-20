@@ -19,7 +19,7 @@ if __name__ == "__main__":
     robot_ctr.Set_override_ratio(5)
     poses = []
     while True:
-        key = raw_input('enter')
+        key = raw_input('press Enter for get pose, q to exit')
         if key == "q":
             break
         pose = robot_ctr.Get_current_position()

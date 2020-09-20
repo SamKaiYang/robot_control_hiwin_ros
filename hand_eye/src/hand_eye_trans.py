@@ -38,6 +38,16 @@ class HandEyeTrans:
                 eye2base,
                 self.__eye_trans2base_transform
         )
+        self.__pis2base_server = rospy.Service('robot/down_cam2base',
+                eye2base,
+                self.__down_pix2base_transform
+        )
+        self.down_cam_trans = np.mat([[0, -1, 0, 0.18],
+                                      [1, 0, 0, 0.24],
+                                      [0, 0, 1, -0.89],
+                                      [0, 0, 0, 1]])
+
+        self.down_cam_obj_z = 0.57
 
     def __get_camera_param(self):
         curr_path = os.path.dirname(os.path.abspath(__file__))
@@ -111,6 +121,8 @@ class HandEyeTrans:
         result = self._base_tool_trans * np.linalg.inv(self._rtool_tool_trans) * self._rtool_eye_trans * eye_obj_trans
         res = eye2baseResponse()
         res.tar_pose = np.array(result).reshape(-1)
+        print('result\\n', result)
+        print('result\\n', res.tar_pose)
         return res
         
 
@@ -121,6 +133,17 @@ class HandEyeTrans:
         eye_obj_trans[:2] = (eye_obj_trans[:2] - self._camera_mat[:2, 2:]) * eye_obj_trans[2]
         eye_obj_trans[:2] = np.multiply(eye_obj_trans[:2], [[1/self._camera_mat[0, 0]], [1/self._camera_mat[1, 1]]])
         result = self._base_tool_trans * np.linalg.inv(self._rtool_tool_trans) * self._rtool_eye_trans * eye_obj_trans
+        res = eye2baseResponse()
+        res.tar_pose = np.array(np.multiply(result[:3], 100)).reshape(-1)
+        return res
+
+    def __down_pix2base_transform(self, req):
+        self.__get_robot_trans()
+        eye_obj_trans = np.mat(np.append(np.array(req.ini_pose), [self.down_cam_obj_z, 1])).reshape(4, 1)
+        eye_obj_trans[2] = eye_obj_trans[2] * 0.01
+        eye_obj_trans[:2] = (eye_obj_trans[:2] - self._camera_mat[:2, 2:]) * eye_obj_trans[2]
+        eye_obj_trans[:2] = np.multiply(eye_obj_trans[:2], [[1/self._camera_mat[0, 0]], [1/self._camera_mat[1, 1]]])
+        result = self.down_cam_trans * eye_obj_trans
         res = eye2baseResponse()
         res.tar_pose = np.array(np.multiply(result[:3], 100)).reshape(-1)
         return res
