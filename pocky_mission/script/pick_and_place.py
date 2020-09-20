@@ -23,7 +23,8 @@ from std_msgs.msg import String
 from control_node import HiwinRobotInterface
 #pixel_z to base
 from hand_eye.srv import eye2base, eye2baseRequest
-
+#pocky strategy data srv
+from pocky_mission.srv import pocky_data, pocky_dataRequest
 DEBUG = True  # Set True to show debug log, False to hide it.
 ItemNo = 0
 positon = [0.0,0.0,10.0,-180,0,0]
@@ -160,10 +161,10 @@ def vision_state_callback(data):
     global vision_state_flag 
     vision_state_flag = data.state
 
-def Obj_Data_Calculation():  #Enter the number of objects that have been picked and place
+def Obj_Data_Calculation(pixel_x,pixel_y,camera_z):  #Enter the number of objects that have been picked and place
     global objects_picked_num,target_base
     baseRequest = eye2baseRequest()
-    baseRequest.ini_pose = [boxes.x,boxes.y,camera_z] ## test
+    baseRequest.ini_pose = [pixel_x,pixel_y,camera_z] ## test
     target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
 
 def pixel_z_to_base_client(pixel_to_base):
