@@ -22,7 +22,8 @@ from control_node import HiwinRobotInterface
 from hand_eye.srv import eye2base, eye2baseRequest
 #avoidance
 from collision_avoidance.srv import collision_avoid, collision_avoidRequest
-
+#huddle strategy data srv 
+from huddle_mission.srv import HighestSauce ,HighestSauceRequest
 DEBUG = True  # Set True to show debug log, False to hide it.
 ItemNo = 0
 positon = [0.0,0.0,10.0,-180,0,0]
@@ -43,7 +44,6 @@ arm_move_times = 1
 camera_z = 53 
 
 ## strategy data init 
-obj_num = 0
 pick_obj_times = 0
 target_base_avoidance = []
 target_base_above_avoidance = []
@@ -51,6 +51,7 @@ next_take_yolo_flag = False
 arm_down_pick_flag = False
 Stop_motion_flag = False
 objects_picked_num = 0#Number of objects picked
+label_name = ''
 
 LineDown_Speed = 3
 ArmGernel_Speed = 5
@@ -77,6 +78,7 @@ class MissionType(enum.IntEnum):
     # new second take pic point
     Get_Img2 = 3
     Mission_End = 4
+    Pick_twice = 5
 ##-----------switch define------------##
 class switch(object):
     def __init__(self, value):
@@ -98,47 +100,21 @@ class switch(object):
         else:
             return False
 
-class bounding_boxes():
-    def __init__(self,probability,x,y,id_name,Class_name):
-        self.probability = probability
-        self.x = x
-        self.y = y
-        self.id_name = str(id_name)
-        self.Class_name = str(Class_name)
-        self.data = []
-    def add(self):
-        self.data.append([x,y])
-    def remove_data(self):
-        self.data = []
+def huddle_data_client(data):
+    rospy.wait_for_service('/get_highest_sauce')
+    try:
+        huddle_ = rospy.ServiceProxy('/get_highest_sauce', HighestSauce)
+        resp = huddle_(data)
+        return resp
+    except rospy.ServiceException as e:
+        print("Service call failed: %s"%e)
 
-boxes = bounding_boxes(0,0,0,0,0)
-
-def Yolo_callback(data):
-    global obj_num,pick_obj_times
-    check_obj_count = 0
-    obj_num = len((data.ROI_list))
-    if obj_num == 0:
-        print("No Object Found!")
-        print("change method to Realsense!")
-        
-    else:
-        for i in range(obj_num):
-            boxes.probability = data.ROI_list[i].probability
-            if boxes.probability >=0.9:
-                boxes.x = data.ROI_list[i].x
-                boxes.y = data.ROI_list[i].y
-                boxes.id_name = data.ROI_list[i].id
-                boxes.Class_name = data.ROI_list[i].object_name
-
-                boxes.x = data.ROI_list[i].x
-                boxes.y = data.ROI_list[i].y
-                boxes.id_name = data.ROI_list[i].id
-                boxes.Class_name = data.ROI_list[i].object_name
-
-def Obj_Data_Calculation():  #Enter the number of objects that have been picked and place
+def Obj_Data_Calculation(center_X,center_Y,height_Z):  #Enter the number of objects that have been picked and place
     global objects_picked_num,target_base_avoidance,target_base_above_avoidance
+    # global huddle
+    # huddle = huddle_data_client(1)
     baseRequest = eye2baseRequest()
-    baseRequest.ini_pose = [boxes.x,boxes.y,camera_z] 
+    baseRequest.ini_pose = [center_X,center_Y,height_Z] ##### not test
     target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
     ## Increase four sides obstacle avoidance, posture conversion 0918
     #general A posture set
@@ -246,6 +222,13 @@ def MissionItem(ItemNo):
         Arm_cmd.Get_Image,\
         Arm_cmd.Arm_Stop,\
         ]
+    Key_Pick_twice_Command = [\
+        Arm_cmd.MoveToObj_Pick1,\
+        Arm_cmd.MoveToObj_Pick2,\
+        Arm_cmd.MoveToObj_PickUp,\
+        Arm_cmd.Absort_Check,\
+        Arm_cmd.Arm_Stop,\
+        ]
     Key_Get_Image2_Command = [\
         Arm_cmd.Go_Image1,\
         Arm_cmd.Go_Image2,\
@@ -259,6 +242,9 @@ def MissionItem(ItemNo):
     for case in switch(ItemNo): 
         if case(MissionType.Pick):
             MotionKey = Key_PickCommand
+            break
+        if case(MissionType.Pick_twice):
+            MotionKey = Key_Pick_twice_Command
             break
         if case(MissionType.Place):
             MotionKey = Key_PlaceCommand
@@ -322,9 +308,10 @@ def Execute_Mission():
         else:
             MotionItem(MotionSerialKey[MotionStep])
 def MotionItem(ItemNo):
-    global SpeedValue,PushFlag,MissionEndFlag,CurrentMissionType,MotionStep,objects_picked_num,obj_num,MissionType_Flag
+    global SpeedValue,PushFlag,MissionEndFlag,CurrentMissionType,MotionStep,objects_picked_num,MissionType_Flag
     global target_base_avoidance,target_base_above_avoidance,arm_down_pick_flag,Stop_motion_flag,Absort_fail_to_Get_image
     global LineDown_Speed, ArmGernel_Speed
+    global label_name
     for case in switch(ItemNo):
         if case(Arm_cmd.Arm_Stop):
             print("Arm_Stop")
@@ -336,7 +323,7 @@ def MotionItem(ItemNo):
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToObj_Pick2):
-            positon = [target_base_avoidance[0],target_base_avoidance[1],-26,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+            positon = [target_base_avoidance[0],target_base_avoidance[1],target_base_avoidance[2],target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
             robot_ctr.Set_override_ratio(LineDown_Speed) ##speed low
 
@@ -365,10 +352,10 @@ def MotionItem(ItemNo):
             break
         if case(Arm_cmd.MoveToObj_PickUp):
             # time.sleep(0.3)  # pause pick for check sucker ready
-            if Stop_motion_flag == True: #There are early pick up items
-                # Stop_motion_flag = False
-                print("Absort success fucccccckkkkk") 
-                # MotionStep += 1
+            # if Stop_motion_flag == True: #There are early pick up items
+            #     # Stop_motion_flag = False
+            #     print("Absort success fucccccckkkkk") 
+            #     # MotionStep += 1
             # else: # Did not pick up items early
             positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
@@ -377,11 +364,31 @@ def MotionItem(ItemNo):
             print("MoveToObj_PickUp")
             MotionStep += 1
             break
+
+        ## Place a fixed position by category
         if case(Arm_cmd.MoveToTarget_Place):
-            positon = [16.2 ,10, 10, -180,0,0]
+
+            positon = [19.4 ,4.6, 2.1, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
-            positon = [16.2 ,-11.3, 10, -180,0,0]
-            robot_ctr.Step_AbsPTPCmd(positon)
+            #### label place 
+            if label_name == '':
+                positon = [19.4 ,-10, 2.1, -180,0,0]
+                robot_ctr.Step_AbsPTPCmd(positon)
+            elif label_name == '':
+                positon = [19.4 ,-10, 2.1, -180,0,0]
+                robot_ctr.Step_AbsPTPCmd(positon)
+            elif label_name == '':
+                positon = [19.4 ,-10, 2.1, -180,0,0]
+                robot_ctr.Step_AbsPTPCmd(positon)
+            elif label_name == '':
+                positon = [19.4 ,-10, 2.1, -180,0,0]
+                robot_ctr.Step_AbsPTPCmd(positon)
+            elif label_name == '':
+                positon = [19.4 ,-10, 2.1, -180,0,0]
+                robot_ctr.Step_AbsPTPCmd(positon)
+
+            # positon = [19.4 ,-10, 2.1, -180,0,0]
+            # robot_ctr.Step_AbsPTPCmd(positon)
             print("MoveToTarget_Place")
             MotionStep += 1
             break
@@ -392,7 +399,7 @@ def MotionItem(ItemNo):
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToTarget_PlaceUp):
-            positon = [16.2 ,10, 10, -180,0,0]
+            positon = [19.4 ,4.6, 2.1, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
             MotionStep += 1
             break
@@ -422,8 +429,14 @@ def MotionItem(ItemNo):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic
             time.sleep(0.3) # Delayed time to see
-            Obj_Data_Calculation()
-            if obj_num == 0: # If you don't see the object,Mission End
+            ###test 0921
+            huddle = huddle_data_client(1)
+            Obj_Data_Calculation(huddle.center_point_x,huddle.center_point_y,huddle.center_point_z)
+            # if huddle.multiple_sauce_type == True: #Choose to see twice strategy
+            #     MissionType_Flag = 
+            label_name = huddle.sauce_class
+            ###test 0921
+            if len(huddle.sauce_class) == 0: # If you don't see the object,Mission End
                 MissionType_Flag = MissionType.Mission_End
                 # robot_ctr.Stop_motion()  #That is, it is sucked and started to place
                 print("mission end")
@@ -486,8 +499,8 @@ if __name__ == '__main__':
     robot_ctr = HiwinRobotInterface(robot_ip=robot_ip, connection_level=control_mode,name=robot_name)
     robot_ctr.connect()
 
-    rate = rospy.Rate(10) # 10hz
-    a = rospy.Subscriber("obj_position",ROI_array,Yolo_callback)
+    # rate = rospy.Rate(10) # 10hz
+    # a = rospy.Subscriber("obj_position",ROI_array,Yolo_callback)
 
     ## strategy trigger
     try:
@@ -498,8 +511,8 @@ if __name__ == '__main__':
 
             robot_ctr.Set_operation_mode(1)
             
-            ArmGernel_Speed = 100
-            LineDown_Speed = 10
+            ArmGernel_Speed = 5
+            LineDown_Speed = 3
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(100)
