@@ -1,5 +1,5 @@
 #### ros cmd
-#roslaunch transparent_mission pick_and_place_transparent.launch
+#roslaunch huddle_mission pick_and_place_huddle.launch
 import rospy
 import sys
 import time
@@ -114,6 +114,7 @@ def Obj_Data_Calculation(center_X,center_Y,height_Z):  #Enter the number of obje
     # global huddle
     # huddle = huddle_data_client(1)
     baseRequest = eye2baseRequest()
+    print("fffffccccccccccccccccccccc")
     center_X = center_X*100
     center_Y = center_Y*100
     height_Z = height_Z*100
@@ -121,6 +122,7 @@ def Obj_Data_Calculation(center_X,center_Y,height_Z):  #Enter the number of obje
     target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
     ## Increase four sides obstacle avoidance, posture conversion 0918
     #general A posture set
+    print("ffffffffffffffffffffffff")
     A_posture = 0
     ### Avoid singularities for pushpin mission
     if target_base[0] >= 30.5 and target_base[1] > 19.5 and target_base[1] <= 39.5:
@@ -142,9 +144,11 @@ def Obj_Data_Calculation(center_X,center_Y,height_Z):  #Enter the number of obje
     target_base_avoidance = base_avoidance_client(avoidRequest)
 def pixel_z_to_base_client(pixel_to_base):
     rospy.wait_for_service('robot/eye2base')
+    print('pixel_to_base/n', pixel_to_base.ini_pose)
     try:
         pixel_z_to_base = rospy.ServiceProxy('robot/eye2base', eye2base)
         resp1 = pixel_z_to_base(pixel_to_base)
+        print('TARRR/n', resp1.tar_pose)
         return resp1.tar_pose
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
@@ -371,23 +375,23 @@ def MotionItem(ItemNo):
         ## Place a fixed position by category
         if case(Arm_cmd.MoveToTarget_Place):
 
-            positon = [19.4 ,4.6, 2.1, -180,0,0]
+            positon = [19.4 ,4.6, 3, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
             #### label place 
             if label_name == 'lemon':
-                positon = [19.4 ,-10, 2.1, -180,0,0]
+                positon = [19.4 ,-10, 3, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
             elif label_name == 'pepper':
-                positon = [19.4 ,-10, 2.1, -180,0,0]
+                positon = [19.4 ,-10, 3, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
             elif label_name == 'egg':
-                positon = [19.4 ,-10, 2.1, -180,0,0]
+                positon = [19.4 ,-10, 3, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
             elif label_name == 'ketchup':
-                positon = [19.4 ,-10, 2.1, -180,0,0]
+                positon = [19.4 ,-10, 3, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
             elif label_name == 'chili':
-                positon = [19.4 ,-10, 2.1, -180,0,0]
+                positon = [19.4 ,-10, 3, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
 
             # positon = [19.4 ,-10, 2.1, -180,0,0]
@@ -402,39 +406,42 @@ def MotionItem(ItemNo):
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToTarget_PlaceUp):
-            positon = [19.4 ,4.6, 2.1, -180,0,0]
+            positon = [19.4 ,4.6, 3, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
             MotionStep += 1
             break
         if case(Arm_cmd.Go_Image1):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic point(1)
-            positon =  [11.3440, 26.4321, 11.23, 179.994, 10.002, -0.488]
+            positon =  [11.3440, 24.6059, 15.2749, 179.994, 10.002, -0.488]
             robot_ctr.Step_AbsPTPCmd(positon)
             # time.sleep(20) ### test 9/16
             MotionStep += 1
             break
         if case(Arm_cmd.Go_Image2):
-            CurrentMissionType = MissionType.Get_Img2
-            baseRequest = eye2baseRequest()
-            baseRequest.ini_pose = [boxes.x,boxes.y,camera_z]
-            Get_Image_Point_Base = pixel_z_to_base_client(baseRequest) #[x,y,z]
-            avoidRequest_Get_Image_Point = collision_avoidRequest()
-            avoidRequest_Get_Image_Point.ini_pose = [Get_Image_Point_Base[0]-7,Get_Image_Point_Base[1],Get_Image_Point_Base[2],180,10,0] 
-            avoidRequest_Get_Image_Point.limit = 0.1 # test
-            avoidRequest_Get_Image_Point.dis = 30 # test 
-            Get_Image_Point_base_avoidance = base_avoidance_client(avoidRequest_Get_Image_Point)
-            positon =  [Get_Image_Point_base_avoidance[0], Get_Image_Point_base_avoidance[1], Get_Image_Point_base_avoidance[2], Get_Image_Point_base_avoidance[3], Get_Image_Point_base_avoidance[4], Get_Image_Point_base_avoidance[5]]
-            robot_ctr.Step_AbsPTPCmd(positon)
-            MotionStep += 1
+            # CurrentMissionType = MissionType.Get_Img2
+            # baseRequest = eye2baseRequest()
+            # baseRequest.ini_pose = [boxes.x,boxes.y,camera_z]
+            # Get_Image_Point_Base = pixel_z_to_base_client(baseRequest) #[x,y,z]
+            # avoidRequest_Get_Image_Point = collision_avoidRequest()
+            # avoidRequest_Get_Image_Point.ini_pose = [Get_Image_Point_Base[0]-7,Get_Image_Point_Base[1],Get_Image_Point_Base[2],180,10,0] 
+            # avoidRequest_Get_Image_Point.limit = 0.1 # test
+            # avoidRequest_Get_Image_Point.dis = 30 # test 
+            # Get_Image_Point_base_avoidance = base_avoidance_client(avoidRequest_Get_Image_Point)
+            # positon =  [Get_Image_Point_base_avoidance[0], Get_Image_Point_base_avoidance[1], Get_Image_Point_base_avoidance[2], Get_Image_Point_base_avoidance[3], Get_Image_Point_base_avoidance[4], Get_Image_Point_base_avoidance[5]]
+            # robot_ctr.Step_AbsPTPCmd(positon)
+            # MotionStep += 1
             break
         if case(Arm_cmd.Get_Image):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic
             time.sleep(0.3) # Delayed time to see
             ###test 0921
+            print("take obj data")
             huddle = huddle_data_client(1)
+            print("fuckkkkkkk")
             Obj_Data_Calculation(huddle.center_point_x,huddle.center_point_y,huddle.center_point_z)
+            print("fuckkkkkkk")
             # if huddle.multiple_sauce_type == True: #Choose to see twice strategy
             #     MissionType_Flag = 
             label_name = huddle.sauce_class
@@ -447,6 +454,8 @@ def MotionItem(ItemNo):
                 MissionType_Flag = MissionType.Pick
                 # print("Get_Image success")
             
+
+            # time.sleep(20)
             '''''''''''
             1.If the area object is not finished
             2.If there is no next object, take next photo spot
@@ -510,12 +519,12 @@ if __name__ == '__main__':
         if robot_ctr.is_connected():
             robot_ctr.Set_operation_mode(0)
             robot_ctr.Set_base_number(5)
-            robot_ctr.Set_tool_number(15) #transparent tool
+            robot_ctr.Set_tool_number(13) #huddle tool
 
             robot_ctr.Set_operation_mode(1)
             
-            ArmGernel_Speed = 5
-            LineDown_Speed = 3
+            ArmGernel_Speed = 3
+            LineDown_Speed = 2
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(100)
@@ -525,14 +534,20 @@ if __name__ == '__main__':
 
             GetKeyFlag = True # start strategy
             # Get_Image = 0 ,so first take a photo to see if there are objects
-        start_input = int(input('For first strategy, press 1 \n'))
+        start_input = int(input('For first strategy, press 1 \n\nFor pocky service test, press 2 '))
 
         if start_input == 1:
             while(1):
                 Mission_Trigger()
                 if CurrentMissionType == MissionType.Mission_End:
                     rospy.on_shutdown(myhook)
-
+        if start_input == 2:
+            huddle = huddle_data_client(1)
+            print("sauce_class",huddle.sauce_class)
+            print("center_point_x",huddle.center_point_x)
+            print("center_point_y",huddle.center_point_y)
+            print("center_point_z:",huddle.center_point_z)
+            print("multiple_sauce_type:",huddle.multiple_sauce_type)
         rospy.spin()
     except KeyboardInterrupt:
         robot_ctr.Set_motor_state(0)

@@ -6,6 +6,10 @@
 
   <param name ="manipulator_ip_address" value="$(arg manipulator_ip)"/>
 
+  <node name="collision" pkg="collision_avoidance" type="collision_avoid.py" >  </node>
+
+  <node name="hand" pkg="hand_eye" type="hand_eye_trans.py" output = "screen"> </node>
+
   <node name="$(arg manipulator_name)_hiwin_robot_driver" pkg="huddle_mission" type="pick_and_place.py"
         args="--robot_ip $(arg manipulator_ip) --robot_name $(arg manipulator_name) --log_level $(arg log_level) --control_mode $(arg control_mode)" output="screen">
   </node>

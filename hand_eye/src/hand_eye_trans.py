@@ -114,7 +114,12 @@ class HandEyeTrans:
         self.__get_robot_trans()
         eye_obj_trans = np.mat(np.append(np.array(req.ini_pose), 1)).reshape(4, 1)
         eye_obj_trans[:3] = np.multiply(eye_obj_trans[:3], 0.01)
+        print('eye_obj_trans/n', eye_obj_trans)
         result = self._base_tool_trans * np.linalg.inv(self._rtool_tool_trans) * self._rtool_eye_trans * eye_obj_trans
+        print('_base_tool_trans/n', self._base_tool_trans)
+        print('_rtool_tool_trans/n', np.linalg.inv(self._rtool_tool_trans))
+        print('_rtool_eye_trans/n', self._rtool_eye_trans)
+        print('self.eye_obj_trans/n', eye_obj_trans)
         res = eye2baseResponse()
         res.tar_pose = np.array(np.multiply(result[:3], 100)).reshape(-1)
         return res

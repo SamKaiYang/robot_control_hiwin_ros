@@ -491,7 +491,7 @@ if __name__ == '__main__':
 
             GetKeyFlag = True # start strategy
             # Get_Image = 0 ,so first take a photo to see if there are objects
-        start_input = int(input('For first strategy, press 1 \nFor pocky service test, press 2 \n Go camera position, press 3\n'))
+        start_input = int(input('For first strategy, press 1 \nFor pocky service test, press 2 \nGo camera position, press 3\n'))
 
         if start_input == 1:
             while(1):
