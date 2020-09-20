@@ -114,6 +114,9 @@ def Obj_Data_Calculation(center_X,center_Y,height_Z):  #Enter the number of obje
     # global huddle
     # huddle = huddle_data_client(1)
     baseRequest = eye2baseRequest()
+    center_X = center_X*100
+    center_Y = center_Y*100
+    height_Z = height_Z*100
     baseRequest.ini_pose = [center_X,center_Y,height_Z] ##### not test
     target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
     ## Increase four sides obstacle avoidance, posture conversion 0918
@@ -138,9 +141,9 @@ def Obj_Data_Calculation(center_X,center_Y,height_Z):  #Enter the number of obje
     avoidRequest.dis = 0 # test 
     target_base_avoidance = base_avoidance_client(avoidRequest)
 def pixel_z_to_base_client(pixel_to_base):
-    rospy.wait_for_service('robot/pix2base')
+    rospy.wait_for_service('robot/eye2base')
     try:
-        pixel_z_to_base = rospy.ServiceProxy('robot/pix2base', eye2base)
+        pixel_z_to_base = rospy.ServiceProxy('robot/eye2base', eye2base)
         resp1 = pixel_z_to_base(pixel_to_base)
         return resp1.tar_pose
     except rospy.ServiceException as e:
@@ -371,19 +374,19 @@ def MotionItem(ItemNo):
             positon = [19.4 ,4.6, 2.1, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
             #### label place 
-            if label_name == '':
+            if label_name == 'lemon':
                 positon = [19.4 ,-10, 2.1, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
-            elif label_name == '':
+            elif label_name == 'pepper':
                 positon = [19.4 ,-10, 2.1, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
-            elif label_name == '':
+            elif label_name == 'egg':
                 positon = [19.4 ,-10, 2.1, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
-            elif label_name == '':
+            elif label_name == 'ketchup':
                 positon = [19.4 ,-10, 2.1, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
-            elif label_name == '':
+            elif label_name == 'chili':
                 positon = [19.4 ,-10, 2.1, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
 
