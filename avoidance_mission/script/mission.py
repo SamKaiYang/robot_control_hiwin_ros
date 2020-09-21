@@ -1,0 +1,302 @@
+import rospy
+import enum
+import time
+import numpy as np
+import tf
+from math import degrees, radians, cos
+from control_node import HiwinRobotInterface
+from collision_avoidance.srv import collision_avoid, collision_avoidRequest
+from hand_eye.srv import eye2base, eye2baseRequest
+from hand_eye.srv import save_pcd, save_pcdRequest
+from avoidance_mission.srv import snapshot, snapshotRequest
+from tool_angle.srv import tool_angle, tool_angleRequest
+
+pic_pos = \
+[[11., 27., 14., 179.948, 10.215, -0.04],
+[11., 11., 14., -155.677, 9.338, 4.16],
+[11., 45., 15., 162.071, 8.982, -2.503],
+[20., 29., 13., -179.401, 20.484, 0.484],
+[-1., 27., 10., 178.176, -5.075, -0.821],
+[11., 30., 3., 176.897, 9.752, -0.733],
+[11., 48., 0., 147.166, 8.127, -5.457],
+[11., 14., -1., -136.398, 7.255, 6.574],
+[7., 26., -2., 179.442, -22.966, -0.352],
+[20., 26., 0., 179.502, 41.557, -0.951]]
+
+
+class Arm_status(enum.IntEnum):
+    Idle = 1
+    Isbusy = 2
+
+class State(enum.IntEnum):
+    move2pic = 0
+    take_pic = 1
+    move2objup = 2
+    move2obj = 3
+    move2binup = 4
+    move2placeup = 5
+    place = 6
+    finish = 7
+    get_objinfo = 8
+    placeup = 9
+    move2bin_middleup = 10
+
+class EasyCATest:
+    def __init__(self):
+        self.arm_move = False
+        self.monitor_suc = False
+        self.state = State.move2pic
+        self.pic_pos = np.array(pic_pos)
+        self.pic_pos_indx = 0
+        self.target_obj = []
+        self.place_pos_left = np.array([36, -10, -28, 180, 0, 0])##
+        self.place_pos_right = np.array([36, -20, -28, 180, 0, 0])##
+        self.dis_trans = np.mat(np.identity(4))
+        self.right_side = False
+
+    def hand_eye_client(self, req):
+        rospy.wait_for_service('/robot/eye_trans2base')
+        try:
+            ez_ca = rospy.ServiceProxy('/robot/eye_trans2base', eye2base)
+            res = ez_ca(req)
+            return res
+        except rospy.ServiceException as e:
+            print("Service call failed: %s"%e)
+
+    def get_pcd_client(self, req):
+        rospy.wait_for_service('/get_pcd')
+        try:
+            get_pcd = rospy.ServiceProxy('/get_pcd', save_pcd)
+            res = get_pcd(req)
+            return res
+        except rospy.ServiceException as e:
+            print("Service call failed: %s"%e)
+
+    def CA_client(self, req):
+        rospy.wait_for_service('/robot/_CA')
+        try:
+            ca = rospy.ServiceProxy('/robot/_CA', collision_avoid)
+            res = ca(req)
+            return res
+        except rospy.ServiceException as e:
+            print("Service call failed: %s"%e)
+    
+    def get_obj_client(self, req):
+        rospy.wait_for_service('/AlignPointCloud')
+        try:
+            get_obj = rospy.ServiceProxy('/AlignPointCloud', snapshot)
+            res = get_obj(req)
+            return res
+        except rospy.ServiceException as e:
+            print("Service call failed: %s"%e)
+
+    def tool_client(self, req):
+        rospy.wait_for_service('/tool/tool_angle')
+        try:
+            tool = rospy.ServiceProxy('/tool/tool_angle', tool_angle)
+            res = tool(req)
+            return res
+        except rospy.ServiceException as e:
+            print("Service call failed: %s"%e)
+
+    def check_side(self, trans):
+        if abs(np.dot(np.array(trans[:3, 2]), [0, 0, 1])) > 0.7:
+            if trans[2,2] > 0:
+                transform = tf.transformations.euler_matrix(radians(180), 0, 0, axes='sxyz')
+                trans = transform * trans
+                r_side = True
+            else:
+                r_side = False
+        else:
+            vec_cen2obj = trans[:2, 3].reshape(-1) - np.array([0.2,0.3])
+            vec_obj = trans[:2, 2]
+            if np.dot(vec_cen2obj, vec_obj) / (np.linalg.norm(vec_cen2obj) * np.linalg.norm(vec_obj)) > 0:
+                transform = tf.transformations.euler_matrix(radians(180), 0, 0, axes='sxyz')
+                trans = transform * trans
+                r_side = True
+            else:
+                r_side = False
+        self.target_obj = trans
+        return r_side
+        
+
+
+    def Mission_Trigger(self):
+        if self.arm_move == True and robot_ctr.get_robot_motion_state() == Arm_status.Isbusy:
+            self.arm_move = False
+        # if Arm_state_flag == Arm_status.Idle and Sent_data_flag == 1:
+        if self.monitor_suc == True:
+            robot_inputs_state = robot_ctr.Get_current_robot_inputs()
+            if robot_inputs_state[0] == True:
+                robot_ctr.Stop_motion()  #That is, it is sucked and started to place
+                time.sleep(0.2)
+                self.monitor_suc = False
+                self.state = State.move2binup
+
+        if robot_ctr.get_robot_motion_state() == Arm_status.Idle and self.arm_move == False:
+            if self.state == State.move2pic:
+                pos = self.pic_pos[self.pic_pos_indx]
+                # self.pic_pos_indx += 1
+                # position = [pos[0], pos[1], pos[2], pos[3], pos[4], pos[5]]
+                pos[1] -= 3
+                robot_ctr.Set_ptp_speed(10)
+                robot_ctr.Step_AbsPTPCmd(pos)
+                self.state = State.get_objinfo
+                self.arm_move = True
+
+            elif self.state == State.take_pic:
+                time.sleep(0.2)
+                req = eye2baseRequest()
+                req.ini_pose = np.array(np.identity(4)).reshape(-1)
+                trans = self.hand_eye_client(req).tar_pose
+                req = save_pcdRequest()
+                req.curr_trans = np.array(trans)
+                req.name = 'mdfk'                               
+                if self.pic_pos_indx < len(self.pic_pos):
+                    self.state = State.move2pic
+                    req.save_mix = False
+                else:
+                    self.state = State.get_objinfo
+                    req.save_mix = True
+                self.get_pcd_client(req)
+
+            elif self.state == State.get_objinfo:
+                time.sleep(0.2)
+                req = snapshotRequest()
+                req.call = 0
+                res = self.get_obj_client(req)
+                if res.do == True:
+                    trans = np.mat(np.asarray(res.trans)).reshape(4,4)
+                    if res.type == 0:
+                        trans = np.array(trans).reshape(-1)                        
+                    elif res.type == 1:
+                        pre_trans = np.mat([[1., 0, 0, 0],
+                                            [0,  1, 0, 0],
+                                            [0,  0, 1, 0],
+                                            [0,  0, 0, 1]])
+                        trans = pre_trans * trans
+                        trans = np.array(trans).reshape(-1)
+                    elif res.type == 2:
+                        pre_trans = np.mat([[1., 0, 0, 0],
+                                            [0,  1, 0, 0],
+                                            [0,  0, 1, 0],
+                                            [0,  0, 0, 1]])
+                        trans = pre_trans * trans
+                        trans = np.array(trans).reshape(-1)
+
+                    req = eye2baseRequest()
+                    req.ini_pose = trans ##
+                    self.target_obj = self.hand_eye_client(req).tar_pose
+                    self.target_obj = np.mat(self.target_obj).reshape(4,4)
+                    self.right_side = self.check_side(self.target_obj)
+                    
+                    print('self.target_obj\n ', self.target_obj)
+                    self.state = State.move2objup
+                    self.pic_pos_indx = 0
+                else:
+                    self.pic_pos_indx += 1
+                    self.pic_pos_indx = self.pic_pos_indx  if self.pic_pos_indx < len(self.pic_pos) else 0
+                    self.state = State.move2pic
+
+            elif self.state == State.move2objup:
+                req = collision_avoid()
+                req.ini_pose = self.target_obj ####
+                req.limit = 2
+                req.dis = 5
+                res = self.CA_client(req)
+                pose = res.tar_pose
+                self.dis_trans = res.dis_trans
+                self.suc_angle = res.suc_angle
+                robot_ctr.Set_ptp_speed(10)
+                robot_ctr.Step_AbsPTPCmd(pose)
+                req = tool_angleRequest()
+                req.angle = self.suc_angle
+                res = self.tool_client(req)
+                self.state = State.move2obj
+                self.arm_move = True
+
+
+            elif self.state == State.move2obj:
+                robot_ctr.Set_digital_output(1,True)
+                req = collision_avoid()
+                req.ini_pose = self.target_obj ####
+                req.limit = 2
+                req.dis = 0
+                res = self.CA_client(req)
+                pose = res.tar_pose
+                robot_ctr.Set_ptp_speed(10)
+                robot_ctr.Step_AbsPTPCmd(pose)
+                self.state = State.move2binup
+                self.monitor_suc = True
+                self.arm_move = True
+
+            elif self.state == State.move2binup:
+                if self.monitor_suc == True:
+                    time.sleep(0.3)
+                    self.monitor_suc = False
+                pose = [15,15,10,180,0,0]
+                robot_ctr.Set_ptp_speed(10)
+                robot_ctr.Step_AbsPTPCmd(pose)
+                req = tool_angleRequest()
+                req.angle = 0
+                res = self.tool_client(req)
+                self.state = State.move2placeup
+                self.arm_move = True
+
+            elif self.state == State.move2placeup:
+                robot_inputs_state = robot_ctr.Get_current_robot_inputs()
+                if robot_inputs_state[0] == True:
+                    robot_ctr.Set_digital_output(1,False)
+                    self.state = State.move2pic
+                    return
+                if self.right_side:
+                    self.place_pos_right[0] -= 6
+                    pose = self.place_pos_right ##
+                else:
+                    self.place_pos_left[0] -= 6
+                    pose = self.place_pos_left ##
+                trans = tf.transformations.euler_matrix(radians(pose[3]), radians(pose[4]), radians(pose[5]), axes='sxyz')
+                trans = np.mat(trans) * self.dis_trans
+                pose[3:] = [degrees(abc) for abc in tf.transformations.euler_from_matrix(trans, axes='sxyz')]
+                robot_ctr.Set_ptp_speed(10)
+                robot_ctr.Step_AbsPTPCmd(pose)
+                self.state = State.place
+                self.arm_move = True
+
+            elif self.state == State.place:
+                relat_pos = [0,0,-30,0,0,0]
+                robot_ctr.Set_ptp_speed(10)
+                robot_ctr.Step_RelPTPCmd(relat_pos)
+                self.state = State.placeup
+                self.arm_move = True
+
+            elif self.state == State.placeup:
+                robot_ctr.Set_digital_output(1,False)
+                relat_pos = [0,0,30,0,0,0]
+                robot_ctr.Set_ptp_speed(10)
+                robot_ctr.Step_RelPTPCmd(relat_pos)
+                self.state = State.move2pic
+                self.arm_move = True
+
+if __name__ == "__main__":
+    rospy.init_node('get_pcd')
+    robot_ctr = HiwinRobotInterface(robot_ip="192.168.0.1", connection_level=1,name="manipulator")
+    robot_ctr.connect()
+
+
+    robot_ctr.Set_operation_mode(0)
+    # set tool & base coor
+    tool_coor = [0,0,0,0,0,0]
+    base_coor = [0,0,0,0,0,0]
+    robot_ctr.Set_base_number(5)
+    # base_result = robot_ctr.Define_base(1,base_coor)
+    robot_ctr.Set_tool_number(10)
+    # tool_result = robot_ctr.Define_tool(1,tool_coor)
+    robot_ctr.Set_operation_mode(1)
+    robot_ctr.Set_override_ratio(100)
+    poses = []
+    strtage = EasyCATest()
+    while strtage.state != State.finish and not rospy.is_shutdown():
+        strtage.Mission_Trigger()
+        time.sleep(0.1)
+
