@@ -265,10 +265,12 @@ def MotionItem(ItemNo):
         ## To be tested
         if case(Arm_cmd.MoveToObj_Pick1):
             pocky = pocky_data_client(1)
-            print(pocky)
-            print("bottom_count:",bottom_count)
-            print("top_count:",top_count)
+            # print(pocky)
+            # print("bottom_count:",bottom_count)
+            # print("top_count:",top_count)
             if bottom_count < len(pocky.bottom_box):
+                if pocky.bottom_CenterX[bottom_count] == None:
+                    bottom_count += 1
                 if pocky.bottom_box[bottom_count] == 'WP':
                     positon = [3.1940,-28.6546,(-29.8462+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
@@ -295,6 +297,8 @@ def MotionItem(ItemNo):
                     robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
                 print("MoveToObj_bottom_box_Pick1")
             elif bottom_count == len(pocky.bottom_box) and top_count < len(pocky.top_box):
+                if pocky.top_CenterX[top_count] == None:
+                    top_count += 1
                 if pocky.top_box[top_count] == 'WP':
                     positon = [3.1940,-28.6546,(-29.8462+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
@@ -376,7 +380,7 @@ def MotionItem(ItemNo):
 
             if bottom_count < len(pocky.bottom_box):
                 Obj_Data_Calculation_down(pocky.bottom_CenterX[bottom_count],pocky.bottom_CenterY[bottom_count])
-                positon = [target_down_base[0]+9,target_down_base[1]-32,-19.6414,180,0,pocky.bottom_Angle[bottom_count]] ## Z test
+                positon = [target_down_base[0]+10,target_down_base[1]-20.7,-19.6414,180,0,pocky.bottom_Angle[bottom_count]] ## Z test
                 robot_ctr.Step_AbsPTPCmd(positon)
                 robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
                 bottom_count += 1
@@ -410,7 +414,7 @@ def MotionItem(ItemNo):
             positon =  [11.3440, 36.4321, 11.23, 179.994, 10.002, -0.488]
             robot_ctr.Step_AbsPTPCmd(positon)
             robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
-            time.sleep(20) ### test 9/16
+            # time.sleep(20) ### test 9/16
             MotionStep += 1
             print("Go_Image1")
             break
@@ -480,8 +484,8 @@ if __name__ == '__main__':
 
             robot_ctr.Set_operation_mode(1)
             
-            ArmGernel_Speed = 10
-            LineDown_Speed = 5
+            ArmGernel_Speed = 100
+            LineDown_Speed = 20
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(100)

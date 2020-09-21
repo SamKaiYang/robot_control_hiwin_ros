@@ -51,7 +51,7 @@ class HandEyeTrans:
                                       [0, 0, 1, -0.89],
                                       [0, 0, 0, 1]])
 
-        self.down_cam_obj_z = 0.6
+        self.down_cam_obj_z = 0.613
 
     def __get_camera_param(self):
         curr_path = os.path.dirname(os.path.abspath(__file__))
