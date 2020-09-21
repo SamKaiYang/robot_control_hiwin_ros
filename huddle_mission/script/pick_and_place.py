@@ -111,18 +111,14 @@ def huddle_data_client(data):
 
 def Obj_Data_Calculation(center_X,center_Y,height_Z):  #Enter the number of objects that have been picked and place
     global objects_picked_num,target_base_avoidance,target_base_above_avoidance
-    # global huddle
-    # huddle = huddle_data_client(1)
     baseRequest = eye2baseRequest()
-    print("fffffccccccccccccccccccccc")
     center_X = center_X*100
     center_Y = center_Y*100
     height_Z = height_Z*100
-    baseRequest.ini_pose = [center_X,center_Y,height_Z] ##### not test
+    baseRequest.ini_pose = [center_X,center_Y,height_Z] 
     target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
     ## Increase four sides obstacle avoidance, posture conversion 0918
     #general A posture set
-    print("ffffffffffffffffffffffff")
     A_posture = 0
     ### Avoid singularities for pushpin mission
     if target_base[0] >= 30.5 and target_base[1] > 19.5 and target_base[1] <= 39.5:
@@ -182,21 +178,11 @@ def Get_MissionType():
     for case in switch(MissionType_Flag):
         if case(MissionType.Pick):
             Type = MissionType.Pick
-            print("Pick")
             MissionType_Flag = MissionType.Place
             break
         if case(MissionType.Place):
             Type = MissionType.Place
             MissionType_Flag = MissionType.Get_Img
-            '''''
-            1. Do you want to continue to absorb # Determine the number of objects picked up
-            
-            Type = MissionType.Get_Img or Type = MissionType.Get_Img2
-
-            2. Determine whether the task is to be completed
-
-            Type = MissionType.Mission_End
-            '''
             break
         if case(MissionType.Get_Img):
             Type = MissionType.Get_Img
@@ -276,9 +262,6 @@ def Execute_Mission():
         robot_inputs_state = robot_ctr.Get_current_robot_inputs() # Determine whether the object is sucked
         if robot_inputs_state[0] == True:  # is digital IO input 1 pin
             print("Absort success") 
-            '''''
-            Draw success plus one
-            '''''
             robot_ctr.Stop_motion()  #That is, it is sucked and started to place
             time.sleep(0.1)
 
@@ -346,11 +329,6 @@ def MotionItem(ItemNo):
                 MotionStep += 1
             else:
                 print("Absort fail and mission continue to Get image")
-                '''''
-                1.Suck next object
-                MissionType_Flag = pick
-                2.If there is no next object, take another photo
-                '''''
                 robot_ctr.Set_digital_output(1,False) # Absort_OFF
                 MissionType_Flag =  MissionType.Get_Img
                 GetKeyFlag = True
@@ -358,12 +336,6 @@ def MotionItem(ItemNo):
                 MotionStep += 1 # tmp
             break
         if case(Arm_cmd.MoveToObj_PickUp):
-            # time.sleep(0.3)  # pause pick for check sucker ready
-            # if Stop_motion_flag == True: #There are early pick up items
-            #     # Stop_motion_flag = False
-            #     print("Absort success fucccccckkkkk") 
-            #     # MotionStep += 1
-            # else: # Did not pick up items early
             positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
@@ -371,31 +343,34 @@ def MotionItem(ItemNo):
             print("MoveToObj_PickUp")
             MotionStep += 1
             break
-
         ## Place a fixed position by category
         if case(Arm_cmd.MoveToTarget_Place):
-
             positon = [19.4 ,4.6, 3, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
-            #### label place 
+            #### 5 label place 
+            ############
+            ## lemon  ##
+            #######################
+            ## pepper ## ketchup ##
+            #######################
+            ## egg    ## chili   ##
+            #######################
             if label_name == 'lemon':
-                positon = [19.4 ,-10, 3, -180,0,0]
+                positon = [26.45, -10.22, 3, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
             elif label_name == 'pepper':
-                positon = [19.4 ,-10, 3, -180,0,0]
+                positon = [13.66 ,-10.22, 3, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
             elif label_name == 'egg':
-                positon = [19.4 ,-10, 3, -180,0,0]
+                positon = [1.65 ,-10.22, 3, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
             elif label_name == 'ketchup':
-                positon = [19.4 ,-10, 3, -180,0,0]
+                positon = [13.66 ,-17.99, 3, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
             elif label_name == 'chili':
-                positon = [19.4 ,-10, 3, -180,0,0]
+                positon = [1.65 ,-17.99, 3, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
 
-            # positon = [19.4 ,-10, 2.1, -180,0,0]
-            # robot_ctr.Step_AbsPTPCmd(positon)
             print("MoveToTarget_Place")
             MotionStep += 1
             break
@@ -419,18 +394,7 @@ def MotionItem(ItemNo):
             MotionStep += 1
             break
         if case(Arm_cmd.Go_Image2):
-            # CurrentMissionType = MissionType.Get_Img2
-            # baseRequest = eye2baseRequest()
-            # baseRequest.ini_pose = [boxes.x,boxes.y,camera_z]
-            # Get_Image_Point_Base = pixel_z_to_base_client(baseRequest) #[x,y,z]
-            # avoidRequest_Get_Image_Point = collision_avoidRequest()
-            # avoidRequest_Get_Image_Point.ini_pose = [Get_Image_Point_Base[0]-7,Get_Image_Point_Base[1],Get_Image_Point_Base[2],180,10,0] 
-            # avoidRequest_Get_Image_Point.limit = 0.1 # test
-            # avoidRequest_Get_Image_Point.dis = 30 # test 
-            # Get_Image_Point_base_avoidance = base_avoidance_client(avoidRequest_Get_Image_Point)
-            # positon =  [Get_Image_Point_base_avoidance[0], Get_Image_Point_base_avoidance[1], Get_Image_Point_base_avoidance[2], Get_Image_Point_base_avoidance[3], Get_Image_Point_base_avoidance[4], Get_Image_Point_base_avoidance[5]]
-            # robot_ctr.Step_AbsPTPCmd(positon)
-            # MotionStep += 1
+            print("Go_Image2")
             break
         if case(Arm_cmd.Get_Image):
             CurrentMissionType = MissionType.Get_Img
@@ -439,12 +403,6 @@ def MotionItem(ItemNo):
             ###test 0921
             print("take obj data")
             huddle = huddle_data_client(1)
-            # print("fuckkkkkkk")
-            # Obj_Data_Calculation(huddle.center_point_x,huddle.center_point_y,huddle.center_point_z)
-            # print("fuckkkkkkk")
-            # if huddle.multiple_sauce_type == True: #Choose to see twice strategy
-            #     MissionType_Flag = 
-            # label_name = huddle.sauce_class
             ###test 0921
             if huddle.is_done == True:
                 Obj_Data_Calculation(huddle.center_point_x,huddle.center_point_y,huddle.center_point_z)
@@ -454,22 +412,8 @@ def MotionItem(ItemNo):
                 print("Get_Image")
                 if len(huddle.sauce_class) == 0: # If you don't see the object,Mission End
                     MissionType_Flag = MissionType.Mission_End
-                    # robot_ctr.Stop_motion()  #That is, it is sucked and started to place
                     print("mission end")
-            # else: # Have seen the object, take the action
-            #     MissionType_Flag = MissionType.Pick
-            #     # print("Get_Image success")
             
-
-            # time.sleep(20)
-            '''''''''''
-            1.If the area object is not finished
-            2.If there is no next object, take next photo spot
-            MissionType_Flag = Get_Img2
-            3.If next photo spot is elso noing, end of mission
-            If ob_num == 0
-            '''''''''''
-            # MotionStep += 1
             break
         if case(Arm_cmd.Go_back_home):
             robot_ctr.Set_operation_mode(0)
@@ -479,9 +423,6 @@ def MotionItem(ItemNo):
             break
         if case(): 
             print ("something else!")
-##-------------strategy end ------------
-def myhook():
-    print ("shutdown time!")
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser("Driver Node")
@@ -517,9 +458,6 @@ if __name__ == '__main__':
     robot_ctr = HiwinRobotInterface(robot_ip=robot_ip, connection_level=control_mode,name=robot_name)
     robot_ctr.connect()
 
-    # rate = rospy.Rate(10) # 10hz
-    # a = rospy.Subscriber("obj_position",ROI_array,Yolo_callback)
-
     ## strategy trigger
     try:
         if robot_ctr.is_connected():
@@ -540,13 +478,11 @@ if __name__ == '__main__':
 
             GetKeyFlag = True # start strategy
             # Get_Image = 0 ,so first take a photo to see if there are objects
-        start_input = int(input('For first strategy, press 1 \n\nFor pocky service test, press 2 '))
+        start_input = int(input('For first strategy, press 1 \nFor pocky service test, press 2 \nGo to get image position\n, press 3'))
 
         if start_input == 1:
             while(1):
                 Mission_Trigger()
-                if CurrentMissionType == MissionType.Mission_End:
-                    rospy.on_shutdown(myhook)
         if start_input == 2:
             huddle = huddle_data_client(1)
             print("sauce_class",huddle.sauce_class)
@@ -554,6 +490,10 @@ if __name__ == '__main__':
             print("center_point_y",huddle.center_point_y)
             print("center_point_z:",huddle.center_point_z)
             print("multiple_sauce_type:",huddle.multiple_sauce_type)
+        if start_input == 3:
+            positon =  [11.3440, 24.6059, 15.2749, 179.994, 10.002, -0.488]
+            robot_ctr.Step_AbsPTPCmd(positon)
+
         rospy.spin()
     except KeyboardInterrupt:
         robot_ctr.Set_motor_state(0)

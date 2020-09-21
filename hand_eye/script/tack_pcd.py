@@ -63,6 +63,7 @@ class EasyCATest:
                 # position = [pos[0], pos[1], pos[2], pos[3], pos[4], pos[5]]
                 
                 print(pos)
+                pos[1] -= 3
                 robot_ctr.Set_ptp_speed(10)
                 robot_ctr.Step_AbsPTPCmd(pos)
                 self.pos = np.delete(self.pos, 0, 0)
