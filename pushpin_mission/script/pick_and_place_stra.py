@@ -23,6 +23,8 @@ from hand_eye.srv import eye2base, eye2baseRequest
 #avoidance
 from collision_avoidance.srv import collision_avoid, collision_avoidRequest
 
+import random #0921
+
 DEBUG = True  # Set True to show debug log, False to hide it.
 ItemNo = 0
 positon = [0.0,0.0,10.0,-180,0,0]
@@ -40,7 +42,7 @@ CurrentMissionType = 0
 arm_move_times = 1
 
 ###---pixel z to base data init
-camera_z = 52
+camera_z = 57
 
 ## strategy data init 
 obj_num = 0
@@ -122,18 +124,20 @@ def Yolo_callback(data):
         print("change method to Realsense!")
         
     else:
-        for i in range(obj_num):
-            boxes.probability = data.ROI_list[i].probability
-            if boxes.probability >=0.95:
-                boxes.x = data.ROI_list[i].x
-                boxes.y = data.ROI_list[i].y
-                boxes.id_name = data.ROI_list[i].id
-                boxes.Class_name = data.ROI_list[i].object_name
+        ## 0921
+        # for i in range(obj_num):
+        random_i = random.randint(1,obj_num) - 1
+        # boxes.probability = data.ROI_list[i].probability
+        # if boxes.probability >=0.95:
+        boxes.x = data.ROI_list[random_i].x
+        boxes.y = data.ROI_list[random_i].y
+        boxes.id_name = data.ROI_list[random_i].id
+        boxes.Class_name = data.ROI_list[random_i].object_name
 
-                boxes.x = data.ROI_list[i].x
-                boxes.y = data.ROI_list[i].y
-                boxes.id_name = data.ROI_list[i].id
-                boxes.Class_name = data.ROI_list[i].object_name
+        boxes.x = data.ROI_list[random_i].x
+        boxes.y = data.ROI_list[random_i].y
+        boxes.id_name = data.ROI_list[random_i].id
+        boxes.Class_name = data.ROI_list[random_i].object_name
 
 def Obj_Data_Calculation():  #Enter the number of objects that have been picked and place
     global objects_picked_num,target_base_avoidance,target_base_above_avoidance
@@ -248,15 +252,6 @@ def Get_MissionType():
         if case(MissionType.Place):
             Type = MissionType.Place
             MissionType_Flag = MissionType.Get_Img
-            '''''
-            1. Do you want to continue to absorb # Determine the number of objects picked up
-            
-            Type = MissionType.Get_Img or Type = MissionType.Get_Img2
-
-            2. Determine whether the task is to be completed
-
-            Type = MissionType.Mission_End
-            '''
             break
         if case(MissionType.Get_Img):
             Type = MissionType.Get_Img
@@ -326,9 +321,6 @@ def Execute_Mission():
         robot_inputs_state = robot_ctr.Get_current_robot_inputs() # Determine whether the object is sucked
         if robot_inputs_state[0] == True:  # is digital IO input 1 pin
             print("Absort success") 
-            '''''
-            Draw success plus one
-            '''''
             robot_ctr.Stop_motion()  #That is, it is sucked and started to place
             time.sleep(0.2)
 
@@ -395,11 +387,6 @@ def MotionItem(ItemNo):
                 MotionStep += 1
             else:
                 print("Absort fail and mission continue to Get image")
-                '''''
-                1.Suck next object
-                MissionType_Flag = pick
-                2.If there is no next object, take another photo
-                '''''
                 robot_ctr.Set_digital_output(1,False) # Absort_OFF
                 MissionType_Flag =  MissionType.Get_Img
                 GetKeyFlag = True
@@ -442,7 +429,7 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.Go_Image1):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic point(1)
-            positon =  [11.3440, 26.4321, 2.7427, 179.994, 10.002, -0.488]
+            positon =  [11.2218, 24.6318, 8.2829, 179.994, 10.002, -0.488]
             robot_ctr.Step_AbsPTPCmd(positon)
             # time.sleep(20) ### test 9/16
             MotionStep += 1
@@ -474,18 +461,13 @@ def MotionItem(ItemNo):
                 MissionType_Flag = MissionType.Pick
                 # print("Get_Image success")
             
-            '''''''''''
-            1.If the area object is not finished
-            2.If there is no next object, take next photo spot
-            MissionType_Flag = Get_Img2
-            3.If next photo spot is elso noing, end of mission
-            If ob_num == 0
-            '''''''''''
             MotionStep += 1
             break
         if case(Arm_cmd.Go_back_home):
-            robot_ctr.Set_operation_mode(0)
-            robot_ctr.Go_home()
+            ### test take pic point(1)
+            positon =  [11.2218, 24.6318, 8.2829, 179.994, 10.002, -0.488]
+            robot_ctr.Step_AbsPTPCmd(positon)
+            robot_ctr.Set_override_ratio(50)
             print("MissionEnd")
             MotionStep += 1
             break
@@ -552,27 +534,31 @@ if __name__ == '__main__':
 
             GetKeyFlag = True # start strategy
             # Get_Image = 0 ,so first take a photo to see if there are objects
-        start_input = int(input('For first strategy, press 1, For second strategy, press 2:, For test strategy, press 3: \n'))
+        start_input = int(input('For run strategy, press 1:\nFor test button, press 2: \nFor test button strtegy, press 3: \n'))
 
         if start_input == 1:
             while(1):
-                MissionType_Flag = MissionType.Get_Img2 ## Watch twice
-                Mission_Trigger()
-                if CurrentMissionType == MissionType.Mission_End:
-                    rospy.on_shutdown(myhook)
-        if start_input == 2:
-            while(1):
-                MissionType_Flag = MissionType.Get_Img2 ## Watch twice
-                Mission_Trigger()
-                if CurrentMissionType == MissionType.Mission_End:
-                    rospy.on_shutdown(myhook)
-        if start_input == 3:
-            while(1):
                 #MissionType_Flag = MissionType.Get_Img
                 Mission_Trigger()
-                if CurrentMissionType == MissionType.Mission_End:
-                    rospy.on_shutdown(myhook)
+                # if CurrentMissionType == MissionType.Mission_End:
+                #     rospy.on_shutdown(myhook)
+        if start_input == 2:
+            while(1):
+                digital_input_state = robot_ctr.Get_current_digital_inputs()
+                print("digital_input_state:",digital_input_state[2])
+        if start_input == 3:
+            button_flag = True
+            while(1):
+                digital_input_state = robot_ctr.Get_current_digital_inputs()
+                button_flag = digital_input_state[2]
 
+                if button_flag == True:
+                    Mission_Trigger()
+                else:
+                    robot_ctr.Stop_motion()
+                    MissionType_Flag = 0
+                    GetKeyFlag = True
+                    ExecuteFlag = False
 
         rospy.spin()
     except KeyboardInterrupt:

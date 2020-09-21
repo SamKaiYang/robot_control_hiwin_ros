@@ -416,8 +416,10 @@ def MotionItem(ItemNo):
             
             break
         if case(Arm_cmd.Go_back_home):
-            robot_ctr.Set_operation_mode(0)
-            robot_ctr.Go_home()
+            ### test take pic point(1)
+            positon =  [11.3440, 24.6059, 15.2749, 179.994, 10.002, -0.488]
+            robot_ctr.Step_AbsPTPCmd(positon)
+            robot_ctr.Set_override_ratio(50)
             print("MissionEnd")
             MotionStep += 1
             break
