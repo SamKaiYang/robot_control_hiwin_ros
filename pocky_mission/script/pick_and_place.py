@@ -270,53 +270,53 @@ def MotionItem(ItemNo):
             print("top_count:",top_count)
             if bottom_count < len(pocky.bottom_box):
                 if pocky.bottom_box[bottom_count] == 'WP':
-                    positon = [2.9792,-28.4870,(-29.8462+10),180,0,0]
+                    positon = [3.1940,-28.6546,(-29.8462+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
                     robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
                 elif pocky.bottom_box[bottom_count] == 'GP':
-                    positon = [22.0686,-22.9382,(-29.8414+10),180,0,0]
+                    positon = [21.9214,-23.4661,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
                     robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
                 elif pocky.bottom_box[bottom_count] == 'Y':
-                    positon = [22.0686,-4.3049,(-29.8414+10),180,0,0]
+                    positon = [21.9214,-7.5690,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
                     robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
                 elif pocky.bottom_box[bottom_count] == 'G':
-                    positon = [22.0686,-13.1650,(-29.8414+10),180,0,0]
+                    positon = [21.9214,-14.8084,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
                     robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
                 elif pocky.bottom_box[bottom_count] == 'W':
-                    positon = [2.9792,-18.8779,(-29.8414+10),180,0,0]
+                    positon = [3.1940,-20.1084,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
                     robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
                 elif pocky.bottom_box[bottom_count] == 'R':
-                    positon = [2.9792,-8.8964,(-29.8414+10),180,0,0]
+                    positon = [3.1940,-11.0502,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
                     robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
                 print("MoveToObj_bottom_box_Pick1")
             elif bottom_count == len(pocky.bottom_box) and top_count < len(pocky.top_box):
                 if pocky.top_box[top_count] == 'WP':
-                    positon = [2.9792,-28.4870,(-29.8462+10),180,0,0]
+                    positon = [3.1940,-28.6546,(-29.8462+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
                     robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
                 elif pocky.top_box[top_count] == 'GP':
-                    positon = [22.0686,-22.9382,(-29.8414+10),180,0,0]
+                    positon = [21.9214,-23.4661,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
                     robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
                 elif pocky.top_box[top_count] == 'Y':
-                    positon = [22.0686,-4.3049,(-29.8414+10),180,0,0]
+                    positon = [21.9214,-7.5690,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
                     robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
                 elif pocky.top_box[top_count] == 'G':
-                    positon = [22.0686,-13.1650,(-29.8414+10),180,0,0]
+                    positon = [21.9214,-14.8084,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
                     robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
                 elif pocky.top_box[top_count] == 'W':
-                    positon = [2.9792,-18.8779,(-29.8414+10),180,0,0]
+                    positon = [3.1940,-20.1084,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
                     robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
                 elif pocky.top_box[top_count] == 'R':
-                    positon = [2.9792,-8.8964,(-29.8414+10),180,0,0]
+                    positon = [3.1940,-11.0502,(-29.8414+10),180,0,0]
                     robot_ctr.Step_AbsPTPCmd(positon)
                     robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
                 print("MoveToObj_top_box_Pick1")
@@ -410,7 +410,7 @@ def MotionItem(ItemNo):
             positon =  [11.3440, 36.4321, 11.23, 179.994, 10.002, -0.488]
             robot_ctr.Step_AbsPTPCmd(positon)
             robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
-            # time.sleep(20) ### test 9/16
+            time.sleep(20) ### test 9/16
             MotionStep += 1
             print("Go_Image1")
             break
@@ -491,37 +491,40 @@ if __name__ == '__main__':
 
             GetKeyFlag = True # start strategy
             # Get_Image = 0 ,so first take a photo to see if there are objects
-        start_input = int(input('For first strategy, press 1 \nFor pocky service test, press 2 \nGo camera position, press 3\n'))
+        start_input = int(input('For first strategy, press 1 \nFor pocky service test, press 2 \nGo camera position, press 3\nFor test button strtegy, press 4: \n'))
 
         if start_input == 1:
             while(1):
                 Mission_Trigger()
-                if CurrentMissionType == MissionType.Mission_End:
-                    rospy.on_shutdown(myhook)
+                # if CurrentMissionType == MissionType.Mission_End:
+                #     rospy.on_shutdown(myhook)
         if start_input == 2:
             pocky = pocky_data_client(1)
-            List = []
-            LLL = list(pocky.top_CenterX)
             while(1):
-                # List = list(pocky)
-                #LLL = list(pocky.top_CenterX)
-                print(LLL)
-                # del pocky.top_box[0]
-                del LLL[0]
-                print (LLL)
-                # del pocky.top_CenterY[0]
-                # del pocky.top_Angle[0]
                 print('len:',len(pocky.top_box) )
-                print(pocky.top_box)
-                # print('fuck')
-                # q = pocky_dataRequest()
-                # q.request_flag = 1
-                # print('fuckUU')
-                # print(pocky)
+                print("top_box:",pocky.top_box)
+                print("top_CenterX:",pocky.top_CenterX)
+                print("top_CenterY:",pocky.top_CenterY)
+                print("bottom_box:",pocky.bottom_box)
+                print("bottom_CenterX:",pocky.bottom_CenterX)
+                print("bottom_CenterY:",pocky.bottom_CenterY)
         if start_input == 3:
             positon =  [11.3440, 36.4321, 11.23, 179.994, 10.002, -0.488]
             robot_ctr.Step_AbsPTPCmd(positon)
             print("Go_Image")
+        if start_input == 4:
+            button_flag = True
+            while(1):
+                digital_input_state = robot_ctr.Get_current_digital_inputs()
+                button_flag = digital_input_state[2]
+
+                if button_flag == True:
+                    Mission_Trigger()
+                else:
+                    robot_ctr.Stop_motion()
+                    MissionType_Flag = 0
+                    GetKeyFlag = True
+                    ExecuteFlag = False
         rospy.spin()
     except KeyboardInterrupt:
         robot_ctr.Set_motor_state(0)

@@ -480,7 +480,7 @@ if __name__ == '__main__':
 
             GetKeyFlag = True # start strategy
             # Get_Image = 0 ,so first take a photo to see if there are objects
-        start_input = int(input('For first strategy, press 1 \nFor pocky service test, press 2 \nGo to get image position, press 3\n'))
+        start_input = int(input('For first strategy, press 1 \nFor pocky service test, press 2 \nGo to get image position, press 3\nFor test button strtegy, press 4: \n'))
 
         if start_input == 1:
             while(1):
@@ -495,7 +495,19 @@ if __name__ == '__main__':
         if start_input == 3:
             positon =  [11.3440, 24.6059, 15.2749, 179.994, 10.002, -0.488]
             robot_ctr.Step_AbsPTPCmd(positon)
+        if start_input == 4:
+            button_flag = True
+            while(1):
+                digital_input_state = robot_ctr.Get_current_digital_inputs()
+                button_flag = digital_input_state[2]
 
+                if button_flag == True:
+                    Mission_Trigger()
+                else:
+                    robot_ctr.Stop_motion()
+                    MissionType_Flag = 0
+                    GetKeyFlag = True
+                    ExecuteFlag = False
         rospy.spin()
     except KeyboardInterrupt:
         robot_ctr.Set_motor_state(0)
