@@ -42,7 +42,7 @@ CurrentMissionType = 0
 arm_move_times = 1
 
 ###---pixel z to base data init
-camera_z = 57
+camera_z = 52.5
 
 ## strategy data init 
 obj_num = 0
@@ -429,7 +429,7 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.Go_Image1):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic point(1)
-            positon =  [11.2218, 24.6318, 8.2829, 179.994, 10.002, -0.488]
+            positon =  [11.2218, 24.6318, 3.519, 179.994, 10.002, -0.488]
             robot_ctr.Step_AbsPTPCmd(positon)
             # time.sleep(20) ### test 9/16
             MotionStep += 1
@@ -465,7 +465,7 @@ def MotionItem(ItemNo):
             break
         if case(Arm_cmd.Go_back_home):
             ### test take pic point(1)
-            positon =  [11.2218, 24.6318, 8.2829, 179.994, 10.002, -0.488]
+            positon =  [11.2218, 24.6318, 3.519, 179.994, 10.002, -0.488]
             robot_ctr.Step_AbsPTPCmd(positon)
             robot_ctr.Set_override_ratio(50)
             print("MissionEnd")
@@ -534,7 +534,7 @@ if __name__ == '__main__':
 
             GetKeyFlag = True # start strategy
             # Get_Image = 0 ,so first take a photo to see if there are objects
-        start_input = int(input('For run strategy, press 1:\nFor test button, press 2: \nFor test button strtegy, press 3: \n'))
+        start_input = int(input('For run strategy, press 1:\nGo to get image position, press 2: \nFor test button strtegy, press 3: \n'))
 
         if start_input == 1:
             while(1):
@@ -544,8 +544,8 @@ if __name__ == '__main__':
                 #     rospy.on_shutdown(myhook)
         if start_input == 2:
             while(1):
-                digital_input_state = robot_ctr.Get_current_digital_inputs()
-                print("digital_input_state:",digital_input_state[2])
+                positon =  [11.2218, 24.6318, 3.519, 179.994, 10.002, -0.488]
+                robot_ctr.Step_AbsPTPCmd(positon)
         if start_input == 3:
             button_flag = True
             while(1):

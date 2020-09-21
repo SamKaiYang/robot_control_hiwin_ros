@@ -376,7 +376,7 @@ def MotionItem(ItemNo):
             break
         if case(Arm_cmd.Absort_OFF):
             robot_ctr.Set_digital_output(1,False)
-            time.sleep(0.1)
+            time.sleep(0.2)
             print("Absort_OFF")
             MotionStep += 1
             break
@@ -469,8 +469,8 @@ if __name__ == '__main__':
 
             robot_ctr.Set_operation_mode(1)
             
-            ArmGernel_Speed = 10
-            LineDown_Speed = 5
+            ArmGernel_Speed = 100
+            LineDown_Speed = 15
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(100)
