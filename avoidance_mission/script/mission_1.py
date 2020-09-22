@@ -56,6 +56,7 @@ class EasyCATest:
         self.place_pos_right = np.array([-2.6236, -26.8867, -29, 180, 0, 0])##
         self.dis_trans = np.mat(np.identity(4))
         self.right_side = False
+        self.stop_flg = False
 
     def hand_eye_client(self, req):
         rospy.wait_for_service('/robot/eye_trans2base')
@@ -135,6 +136,13 @@ class EasyCATest:
                 time.sleep(0.2)
                 self.monitor_suc = False
                 self.state = State.pick_obj
+        # dig_inputs = robot_ctr.Get_current_digital_inputs()
+        # if dig_inputs[2] == True:
+        #     self.stop_flg = True
+        #     return
+        # elif dig_inputs[2] == False and self.stop_flg == True:
+        #     self.stop_flg = False
+        #     self.state = State.move2pic
 
         if robot_ctr.get_robot_motion_state() == Arm_status.Idle and self.arm_move == False:
             if self.state == State.move2pic:
