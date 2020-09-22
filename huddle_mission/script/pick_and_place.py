@@ -121,10 +121,14 @@ def Obj_Data_Calculation(center_X,center_Y,height_Z):  #Enter the number of obje
     #general A posture set
     A_posture = 0
     ### Avoid singularities for pushpin mission
-    if target_base[0] >= 30.5 and target_base[1] > 19.5 and target_base[1] <= 39.5:
+    # if target_base[0] >= 30.5 and target_base[1] > 19.5 and target_base[1] <= 39.5:
+    #     A_posture = 20
+    # if target_base[0] >= 30.5 and target_base[1] >= 19.5 and target_base[1] <= 39.5:
+    #     A_posture = 20
+    if target_base[0] >= 30.5 and target_base[1] > 30 and target_base[1] <= 45:
         A_posture = 20
-    if target_base[0] >= 30.5 and target_base[1] >= 19.5 and target_base[1] <= 39.5:
-        A_posture = 20
+    if target_base[0] >= 30.5 and target_base[1] <= 30 and target_base[1] >= 9:
+        A_posture = -20
 
     A_posture = 180 + A_posture
     ## ------0918
@@ -345,7 +349,7 @@ def MotionItem(ItemNo):
             break
         ## Place a fixed position by category
         if case(Arm_cmd.MoveToTarget_Place):
-            positon = [19.4 ,4.6, 3, -180,0,0]
+            positon = [19.4 ,9.6, 3, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
             #### 5 label place 
             ############
@@ -475,7 +479,7 @@ if __name__ == '__main__':
 
             robot_ctr.Set_acc_dec_ratio(100)
             robot_ctr.Set_digital_output(1,False)
-            robot_ctr.Set_digital_output(2,False)
+            robot_ctr.Set_digital_output(2,True)
             robot_ctr.Set_digital_output(3,False)
 
             GetKeyFlag = True # start strategy

@@ -485,13 +485,13 @@ if __name__ == '__main__':
             robot_ctr.Set_operation_mode(1)
             
             ArmGernel_Speed = 100
-            LineDown_Speed = 20
+            LineDown_Speed = 15
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(100)
             robot_ctr.Set_digital_output(1,False)
-            robot_ctr.Set_digital_output(2,False)
-            robot_ctr.Set_digital_output(3,False)
+            robot_ctr.Set_digital_output(2,True)
+            robot_ctr.Set_digital_output(3,True)
 
             GetKeyFlag = True # start strategy
             # Get_Image = 0 ,so first take a photo to see if there are objects

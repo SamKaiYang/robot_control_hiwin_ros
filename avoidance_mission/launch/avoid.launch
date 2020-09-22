@@ -13,7 +13,7 @@
 
   <node name="tool" pkg="tool_angle" type="tool_angle_node.py" />
 
-  <node name="$(arg manipulator_name)_hiwin_robot_driver" pkg="avoidance_mission" type="mission.py"
+  <node name="$(arg manipulator_name)_hiwin_robot_driver" pkg="avoidance_mission" type="mission_1.py"
         args="--robot_ip $(arg manipulator_ip) --robot_name $(arg manipulator_name) --log_level $(arg log_level) --control_mode $(arg control_mode)" output="screen">
 
 

@@ -13,7 +13,7 @@ class CollisionAvoidance:
     def __init__(self, limit_array):
         self._hx, self._lx, self._hy, self._ly, self._lz = limit_array
         self.limit = 0.1
-        self.suction_len = 0.043
+        self.suction_len = 0.039
         self.single_trans_angle = 5
         self._curr_pose = np.zeros(6)
         self._tool_coor = np.zeros(6)
@@ -148,7 +148,7 @@ class CollisionAvoidance:
             if self._check_collision() is False:
                 break
         #=============================================================== 
-        xyz = [i for i in _tar_trans[0:3, 3:]]
+        xyz = [i for i in self._tar_trans[0:3, 3:]]
         limits = [0.2, 0.4]   
         if xyz[1] > limits[0] and xyz[1] < limits[1]:
             direction = np.array(np.linalg.inv(self._tar_trans[0:3, 0:3])[0:3, 0]).reshape(-1) # get base X axis in end trans

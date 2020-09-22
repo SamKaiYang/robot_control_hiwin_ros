@@ -176,21 +176,22 @@ class EasyCATest:
                 time.sleep(0.2)
                 req = snapshotRequest()
                 req.call = 0
-                # res = self.get_obj_client(req)
-                res = snapshotResponse()
-                res.doit = True
-                res.type = 0
+                res = self.get_obj_client(req)
+                # res = snapshotResponse()
+                # res.doit = True
+                # res.type = 0
                 # t = tf.transformations.rotation_matrix(radians(90), [0, 1, 0], point=None)
                 # res.trans = np.array([1,0,0,0,0,1,0,0,0,0,1,0.59,0,0,0,1])
                 # t = np.array([0.746, -0.665, -0.011, 0.172, -0.663, -0.745, 0.066, -0.089, -0.053, -0.042, -0.997, 0.58, 0,0,0,1])
                 # t = [0.108, 0.977, -0.180, -0.089, -0.993, 0.103, -0.040, -0.183, -0.020, 0.183, 0.982,0.58, 0,0,0,1]
-                t = [-0.040, -0.998, 0.033, -0.047, -0.999, 0.040, 0.012, -0.034, -0.013, -0.033, -0.999,  0.58, 0,0,0,1]
-                t = [0.906, -0.388, -0.168, -0.243, 0.334, 0.900, -0.278, -0.029, 0.259, 0.196, 0.945, 0.58, 0, 0, 0, 1]
-                t = [0.660, 0.750, -0.022, -0.282, -0.750, 0.660, 0.006, 0.146, 0.019, 0.012, 0.999, 0.58,0, 0, 0, 1]
-                res.trans = np.array(t).reshape(-1)
-                res.trans[11] = 0.58
+                # t = [-0.040, -0.998, 0.033, -0.047, -0.999, 0.040, 0.012, -0.034, -0.013, -0.033, -0.999,  0.58, 0,0,0,1]
+                # t = [0.906, -0.388, -0.168, -0.243, 0.334, 0.900, -0.278, -0.029, 0.259, 0.196, 0.945, 0.58, 0, 0, 0, 1]
+                # t = [0.660, 0.750, -0.022, -0.282, -0.750, 0.660, 0.006, 0.146, 0.019, 0.012, 0.999, 0.58,0, 0, 0, 1]
+                # res.trans = np.array(t).reshape(-1)
+                # res.trans[11] = 0.58
                 if res.doit == True:
                     trans = np.mat(np.asarray(res.trans)).reshape(4,4)
+                    trans[2,3] = 0.59
                     if res.type == 1:
                         trans = np.array(trans).reshape(-1)                        
                     elif res.type == 2: # y 90
@@ -208,6 +209,7 @@ class EasyCATest:
                         #                     [0,  0, 0, 1]])
                         pre_trans = tf.transformations.euler_matrix(0, radians(-90), 0, axes='sxyz')
                         trans = trans * pre_trans
+                        print('fucktrans', trans)
                         trans = np.array(trans).reshape(-1)
 
                     req = eye2baseRequest()
@@ -365,3 +367,4 @@ if __name__ == "__main__":
         strtage.Mission_Trigger()
         time.sleep(0.1)
 
+# ('self.target_obj\n ', [15.476806363754292, 59.16117557076886, -28.04519572390219, 134.60712652596033, -39.17113006977304, -31.40485516079049])

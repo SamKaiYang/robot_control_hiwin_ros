@@ -524,7 +524,7 @@ if __name__ == '__main__':
             robot_ctr.Set_operation_mode(1)
             
             ArmGernel_Speed = 100
-            LineDown_Speed = 10
+            LineDown_Speed = 15
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(100)
