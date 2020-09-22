@@ -11,6 +11,9 @@ from hand_eye.srv import eye2base, eye2baseRequest
 from hand_eye.srv import save_pcd, save_pcdRequest
 from avoidance_mission.srv import snapshot, snapshotRequest, snapshotResponse
 from tool_angle.srv import tool_angle, tool_angleRequest
+RATIO = 50
+PTPSPEED = 15
+PTPSPEED_SLOW = 10
 
 pic_pos = \
 [[11., 27., 14., 179.948, 10.215, -0.04],
@@ -136,13 +139,14 @@ class EasyCATest:
                 time.sleep(0.2)
                 self.monitor_suc = False
                 self.state = State.pick_obj
-        # dig_inputs = robot_ctr.Get_current_digital_inputs()
-        # if dig_inputs[2] == True:
-        #     self.stop_flg = True
-        #     return
-        # elif dig_inputs[2] == False and self.stop_flg == True:
-        #     self.stop_flg = False
-        #     self.state = State.move2pic
+        dig_inputs = robot_ctr.Get_current_digital_inputs()
+        if self.stop_flg == True:
+            if dig_inputs[2] == False
+                self.stop_flg = False
+            self.state = State.move2pic
+        elif dig_inputs[2] == True:
+            self.stop_flg = True
+            return
 
         if robot_ctr.get_robot_motion_state() == Arm_status.Idle and self.arm_move == False:
             if self.state == State.move2pic:
@@ -150,7 +154,7 @@ class EasyCATest:
                 # self.pic_pos_indx += 1
                 position = [pos[0], pos[1]-3, pos[2], pos[3], pos[4], pos[5]]
                 # pos[1] -= 3
-                robot_ctr.Set_ptp_speed(10)
+                # robot_ctr.Set_ptp_speed(10)
                 robot_ctr.Step_AbsPTPCmd(position)
                 self.state = State.get_objinfo
                 self.arm_move = True
@@ -200,8 +204,8 @@ class EasyCATest:
                         #                     [0,  0, 1, 0],
                         #                     [0,  0, 0, 1]])
                         pre_trans = tf.transformations.euler_matrix(0, radians(90), 0, axes='sxyz')
-                        # trans = trans * pre_trans
-                        trans = pre_trans * trans
+                        trans = trans * pre_trans
+                        # trans = pre_trans * trans
                         trans = np.array(trans).reshape(-1)
                     elif res.type == 3: # -90
                         # pre_trans = np.mat([[1., 0, 0, 0],
@@ -209,8 +213,8 @@ class EasyCATest:
                         #                     [0,  0, 1, 0],
                         #                     [0,  0, 0, 1]])
                         pre_trans = tf.transformations.euler_matrix(0, radians(-90), 0, axes='sxyz')
-                        # trans = trans * pre_trans
-                        trans = pre_trans * trans
+                        trans = trans * pre_trans
+                        # trans = pre_trans * trans
                         print('fucktrans', trans)
                         trans = np.array(trans).reshape(-1)
 
@@ -240,7 +244,7 @@ class EasyCATest:
                 pose = np.array(res.tar_pose)
                 self.dis_trans = np.mat(res.dis_trans).reshape(4,4)
                 self.suc_angle = res.suc_angle
-                robot_ctr.Set_ptp_speed(10)
+                # robot_ctr.Set_ptp_speed(10)
                 robot_ctr.Step_AbsPTPCmd(pose)
                 req = tool_angleRequest()
                 req.angle = self.suc_angle
@@ -257,7 +261,7 @@ class EasyCATest:
                 req.dis = -1
                 res = self.CA_client(req)
                 pose = np.array(res.tar_pose)
-                robot_ctr.Set_ptp_speed(10)
+                robot_ctr.Set_ptp_speed(PTPSPEED_SLOW)
                 robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.pick_obj
                 self.monitor_suc = True
@@ -270,7 +274,7 @@ class EasyCATest:
                 req.dis = 6
                 res = self.CA_client(req)
                 pose = np.array(res.tar_pose)
-                robot_ctr.Set_ptp_speed(10)
+                robot_ctr.Set_ptp_speed(PTPSPEED)
                 robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.move2binup
                 self.arm_move = True
@@ -280,7 +284,7 @@ class EasyCATest:
                     time.sleep(0.3)
                     self.monitor_suc = False
                 pose = [15,15,10,180,0,0]
-                robot_ctr.Set_ptp_speed(10)
+                # robot_ctr.Set_ptp_speed(10)
                 robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.move2placeup
                 self.arm_move = True
@@ -297,7 +301,7 @@ class EasyCATest:
                     self.state = State.move2pic
                     return
                 pose = [7.7,-18,5.5714,180,0,0]
-                robot_ctr.Set_ptp_speed(10)
+                # robot_ctr.Set_ptp_speed(10)
                 robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.move2placeup1
                 self.arm_move = True
@@ -333,7 +337,7 @@ class EasyCATest:
                 trans = np.mat(trans) * self.dis_trans
                 pose[3:] = [degrees(abc) for abc in tf.transformations.euler_from_matrix(trans, axes='sxyz')]
                 print('pose:\,n', pose)
-                robot_ctr.Set_ptp_speed(10)
+                robot_ctr.Set_ptp_speed(PTPSPEED_SLOW)
                 robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.placeup
                 self.arm_move = True
@@ -342,7 +346,7 @@ class EasyCATest:
             elif self.state == State.placeup:
                 robot_ctr.Set_digital_output(1,False)
                 pose = [7.7,-20,5.5714,180,0,0]
-                robot_ctr.Set_ptp_speed(10)
+                robot_ctr.Set_ptp_speed(PTPSPEED)
                 robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.move2pic
                 self.arm_move = True
@@ -362,7 +366,8 @@ if __name__ == "__main__":
     robot_ctr.Set_tool_number(10)
     # tool_result = robot_ctr.Define_tool(1,tool_coor)
     robot_ctr.Set_operation_mode(1)
-    robot_ctr.Set_override_ratio(50)
+    robot_ctr.Set_override_ratio(RATIO)
+    robot_ctr.Set_ptp_speed(PTPSPEED)
     poses = []
     strtage = EasyCATest()
     while strtage.state != State.finish and not rospy.is_shutdown():

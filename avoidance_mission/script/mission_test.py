@@ -130,13 +130,13 @@ class EasyCATest:
         if self.arm_move == True and True:
             self.arm_move = False
         # if Arm_state_flag == Arm_status.Idle and Sent_data_flag == 1:
-        if self.monitor_suc == True:
+        # if self.monitor_suc == True:
             # robot_inputs_state = robot_ctr.Get_current_robot_inputs()
-            if robot_inputs_state[0] == True:
-                # robot_ctr.Stop_motion()  #That is, it is sucked and started to place
-                time.sleep(0.2)
-                self.monitor_suc = False
-                self.state = State.pick_obj
+            # if robot_inputs_state[0] == True:
+            #     # robot_ctr.Stop_motion()  #That is, it is sucked and started to place
+            #     time.sleep(0.2)
+            #     self.monitor_suc = False
+            #     self.state = State.pick_obj
         # dig_inputs = robot_ctr.Get_current_digital_inputs()
         # if dig_inputs[2] == True:
         #     self.stop_flg = True
@@ -180,9 +180,9 @@ class EasyCATest:
                 res = self.get_obj_client(req)
                 # res = snapshotResponse()
                 # res.doit = True
-                # res.type = 0
+                res.type = 1
                 # t = tf.transformations.rotation_matrix(radians(90), [0, 1, 0], point=None)
-                # res.trans = np.array([1,0,0,0,0,1,0,0,0,0,1,0.59,0,0,0,1])
+                res.trans = np.array([1,0,0,0,0,1,0,0,0,0,1,0.59,0,0,0,1])
                 # t = np.array([0.746, -0.665, -0.011, 0.172, -0.663, -0.745, 0.066, -0.089, -0.053, -0.042, -0.997, 0.58, 0,0,0,1])
                 # t = [0.108, 0.977, -0.180, -0.089, -0.993, 0.103, -0.040, -0.183, -0.020, 0.183, 0.982,0.58, 0,0,0,1]
                 # t = [-0.040, -0.998, 0.033, -0.047, -0.999, 0.040, 0.012, -0.034, -0.013, -0.033, -0.999,  0.58, 0,0,0,1]
@@ -192,7 +192,11 @@ class EasyCATest:
                 # res.trans[11] = 0.58
                 if res.doit == True:
                     trans = np.mat(np.asarray(res.trans)).reshape(4,4)
+                    trans[0, 3] = 0
+                    trans[1, 3] = 0
                     trans[2,3] = 0.59
+                    print('==================================')
+                    print(trans)
                     if res.type == 1:
                         trans = np.array(trans).reshape(-1)                        
                     elif res.type == 2: # y 90
@@ -201,8 +205,8 @@ class EasyCATest:
                         #                     [0,  0, 1, 0],
                         #                     [0,  0, 0, 1]])
                         pre_trans = tf.transformations.euler_matrix(0, radians(90), 0, axes='sxyz')
-                        # trans = trans * pre_trans
-                        trans = pre_trans * trans
+                        trans = trans * pre_trans
+                        # trans = pre_trans * trans
                         trans = np.array(trans).reshape(-1)
                     elif res.type == 3: # -90
                         # pre_trans = np.mat([[1., 0, 0, 0],
@@ -210,15 +214,17 @@ class EasyCATest:
                         #                     [0,  0, 1, 0],
                         #                     [0,  0, 0, 1]])
                         pre_trans = tf.transformations.euler_matrix(0, radians(-90), 0, axes='sxyz')
-                        # trans = trans * pre_trans
-                        trans = pre_trans * trans
+                        trans = trans * pre_trans
+                        # trans = pre_trans * trans
                         print('fucktrans', trans)
                         trans = np.array(trans).reshape(-1)
 
                     req = eye2baseRequest()
                     req.ini_pose = trans ##
+                    print('fff\n',trans)
                     self.target_obj = self.hand_eye_client(req).tar_pose
                     self.target_obj = np.mat(self.target_obj).reshape(4,4)
+                    print('fff\n',self.target_obj)
                     self.right_side = self.check_side(self.target_obj)
                      
                     x, y, z = np.array(np.multiply(self.target_obj[0:3, 3:], 100)).reshape(-1)
@@ -226,6 +232,7 @@ class EasyCATest:
                     self.target_obj = [x, y, z, a, b, c]
                     print('self.target_obj\n ', self.target_obj)
                     self.state = State.move2objup
+                    print('self.target_obj\n ', self.target_obj)
                     self.pic_pos_indx = 0
                 else:
                     # self.pic_pos_indx += 1
@@ -239,13 +246,14 @@ class EasyCATest:
                 req.dis = 6
                 res = self.CA_client(req)
                 pose = np.array(res.tar_pose)
+                print(pose)
                 self.dis_trans = np.mat(res.dis_trans).reshape(4,4)
                 self.suc_angle = res.suc_angle
                 # robot_ctr.Set_ptp_speed(10)
                 # robot_ctr.Step_AbsPTPCmd(pose)
                 req = tool_angleRequest()
                 req.angle = self.suc_angle
-                res = self.tool_client(req)
+                # res = self.tool_client(req)
                 self.state = State.move2obj
                 self.arm_move = True
 
@@ -291,12 +299,12 @@ class EasyCATest:
             elif self.state == State.move2placeup:
                 req = tool_angleRequest()
                 req.angle = 0
-                res = self.tool_client(req)
+                # res = self.tool_client(req)
                 # robot_inputs_state = robot_ctr.Get_current_robot_inputs()
-                if robot_inputs_state[0] == False:
-                    # robot_ctr.Set_digital_output(1,False)
-                    self.state = State.move2pic
-                    return
+                # if robot_inputs_state[0] == False:
+                #     # robot_ctr.Set_digital_output(1,False)
+                #     self.state = State.move2pic
+                #     return
                 pose = [7.7,-18,5.5714,180,0,0]
                 # robot_ctr.Set_ptp_speed(10)
                 # robot_ctr.Step_AbsPTPCmd(pose)

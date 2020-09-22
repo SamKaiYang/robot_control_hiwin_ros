@@ -53,14 +53,16 @@ class HandEyeTrans:
 
         self.down_cam_obj_z = 0.613
 
-        pos = [11., 27., 14., 179.948, 10.215, -0.04]
-        abc = [radians(i) for i in pos[3:]]
-        self._base_tool_trans[0:3, 0:3] = tf.transformations.euler_matrix(abc[0], abc[1], abc[2], axes='sxyz')[0:3, 0:3]
-        self._base_tool_trans[0:3, 3:] = np.mat([i/100 for i in pos[:3]]).reshape(3, 1)
-        pos = [0., 0., 167., 0, 0, 0]
-        abc = [radians(i) for i in pos[3:]]
-        self._rtool_tool_trans[0:3, 0:3] = tf.transformations.euler_matrix(abc[0], abc[1], abc[2], axes='sxyz')[0:3, 0:3]
-        self._rtool_tool_trans[0:3, 3:] = np.mat([i/100 for i in pos[:3]]).reshape(3, 1)        
+        self._curr_pose = np.array([11., 27., 14., 179.948, 10.215, -0.04])
+        self._tool_coor = np.array([0., 0., 16.7, 0, 0, 0])
+        # pos = [11., 27., 14., 179.948, 10.215, -0.04]
+        # abc = [radians(i) for i in pos[3:]]
+        # self._base_tool_trans[0:3, 0:3] = tf.transformations.euler_matrix(abc[0], abc[1], abc[2], axes='sxyz')[0:3, 0:3]
+        # self._base_tool_trans[0:3, 3:] = np.mat([i/100 for i in pos[:3]]).reshape(3, 1)
+        # pos = [0., 0., 167., 0, 0, 0]
+        # abc = [radians(i) for i in pos[3:]]
+        # self._rtool_tool_trans[0:3, 0:3] = tf.transformations.euler_matrix(abc[0], abc[1], abc[2], axes='sxyz')[0:3, 0:3]
+        # self._rtool_tool_trans[0:3, 3:] = np.mat([i/100 for i in pos[:3]]).reshape(3, 1)        
 
     def __get_camera_param(self):
         curr_path = os.path.dirname(os.path.abspath(__file__))
@@ -137,6 +139,10 @@ class HandEyeTrans:
         self.__get_robot_trans()
         eye_obj_trans = np.mat(req.ini_pose).reshape(4, 4)
         result = self._base_tool_trans * np.linalg.inv(self._rtool_tool_trans) * self._rtool_eye_trans * eye_obj_trans
+        print('_base_tool_trans/n', self._base_tool_trans)
+        print('_rtool_tool_trans/n', np.linalg.inv(self._rtool_tool_trans))
+        print('_rtool_eye_trans/n', self._rtool_eye_trans)
+        print('self.eye_obj_trans/n', eye_obj_trans)
         res = eye2baseResponse()
         res.tar_pose = np.array(result).reshape(-1)
         print('result\\n', result)
