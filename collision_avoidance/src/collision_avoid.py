@@ -147,6 +147,15 @@ class CollisionAvoidance:
         for _ in range(10):
             if self._check_collision() is False:
                 break
+        #=============================================================== 
+        xyz = [i for i in _tar_trans[0:3, 3:]]
+        limits = [0.2, 0.4]   
+        if xyz[1] > limits[0] and xyz[1] < limits[1]:
+            direction = np.array(np.linalg.inv(self._tar_trans[0:3, 0:3])[0:3, 0]).reshape(-1) # get base X axis in end trans
+            angle = 15 if xyz[1] < 0.3 else -15 # 0.3 is middle of .2, .4
+            trans_mat = np.mat(tf.transformations.rotation_matrix(radians(angle), direction, point=None)) # use axis angle to get rotation
+            self._tar_trans = self._tar_trans * trans_mat
+        #===============================================================
         # 5.
         suc_angle = acos(np.dot(np.array(self._ini_trans[:3, 2:3]).reshape(-1), np.array(self._tar_trans[:3, 2:3]).reshape(-1)))
         suc_angle = -1 * suc_angle if suc_angle < pi/2 else -1 * (pi - suc_angle)  # because ax_12 axis
