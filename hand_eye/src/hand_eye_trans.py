@@ -53,6 +53,15 @@ class HandEyeTrans:
 
         self.down_cam_obj_z = 0.613
 
+        pos = [11., 27., 14., 179.948, 10.215, -0.04]
+        abc = [radians(i) for i in pos[3:]]
+        self._base_tool_trans[0:3, 0:3] = tf.transformations.euler_matrix(abc[0], abc[1], abc[2], axes='sxyz')[0:3, 0:3]
+        self._base_tool_trans[0:3, 3:] = np.mat([i/100 for i in pos[:3]]).reshape(3, 1)
+        pos = [0., 0., 167., 0, 0, 0]
+        abc = [radians(i) for i in pos[3:]]
+        self._rtool_tool_trans[0:3, 0:3] = tf.transformations.euler_matrix(abc[0], abc[1], abc[2], axes='sxyz')[0:3, 0:3]
+        self._rtool_tool_trans[0:3, 3:] = np.mat([i/100 for i in pos[:3]]).reshape(3, 1)        
+
     def __get_camera_param(self):
         curr_path = os.path.dirname(os.path.abspath(__file__))
         config = ConfigParser.ConfigParser()

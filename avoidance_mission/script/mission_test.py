@@ -1,3 +1,4 @@
+#!/usr/bin/env python 3
 import rospy
 import enum
 import time
@@ -5,7 +6,7 @@ import numpy as np
 import tf
 import copy
 from math import degrees, radians, cos
-from control_node import HiwinRobotInterface
+# from control_node import HiwinRobotInterface
 from collision_avoidance.srv import collision_avoid, collision_avoidRequest
 from hand_eye.srv import eye2base, eye2baseRequest
 from hand_eye.srv import save_pcd, save_pcdRequest
@@ -126,13 +127,13 @@ class EasyCATest:
 
 
     def Mission_Trigger(self):
-        if self.arm_move == True and robot_ctr.get_robot_motion_state() == Arm_status.Isbusy:
+        if self.arm_move == True and True:
             self.arm_move = False
         # if Arm_state_flag == Arm_status.Idle and Sent_data_flag == 1:
         if self.monitor_suc == True:
-            robot_inputs_state = robot_ctr.Get_current_robot_inputs()
+            # robot_inputs_state = robot_ctr.Get_current_robot_inputs()
             if robot_inputs_state[0] == True:
-                robot_ctr.Stop_motion()  #That is, it is sucked and started to place
+                # robot_ctr.Stop_motion()  #That is, it is sucked and started to place
                 time.sleep(0.2)
                 self.monitor_suc = False
                 self.state = State.pick_obj
@@ -144,14 +145,14 @@ class EasyCATest:
         #     self.stop_flg = False
         #     self.state = State.move2pic
 
-        if robot_ctr.get_robot_motion_state() == Arm_status.Idle and self.arm_move == False:
+        if True and self.arm_move == False:
             if self.state == State.move2pic:
                 pos = self.pic_pos[self.pic_pos_indx]
                 # self.pic_pos_indx += 1
                 position = [pos[0], pos[1]-3, pos[2], pos[3], pos[4], pos[5]]
                 # pos[1] -= 3
-                robot_ctr.Set_ptp_speed(10)
-                robot_ctr.Step_AbsPTPCmd(position)
+                # robot_ctr.Set_ptp_speed(10)
+                # robot_ctr.Step_AbsPTPCmd(position)
                 self.state = State.get_objinfo
                 self.arm_move = True
                 # time.sleep(10)
@@ -240,8 +241,8 @@ class EasyCATest:
                 pose = np.array(res.tar_pose)
                 self.dis_trans = np.mat(res.dis_trans).reshape(4,4)
                 self.suc_angle = res.suc_angle
-                robot_ctr.Set_ptp_speed(10)
-                robot_ctr.Step_AbsPTPCmd(pose)
+                # robot_ctr.Set_ptp_speed(10)
+                # robot_ctr.Step_AbsPTPCmd(pose)
                 req = tool_angleRequest()
                 req.angle = self.suc_angle
                 res = self.tool_client(req)
@@ -250,15 +251,15 @@ class EasyCATest:
 
 
             elif self.state == State.move2obj:
-                robot_ctr.Set_digital_output(1,True)
+                # robot_ctr.Set_digital_output(1,True)
                 req = collision_avoidRequest()
                 req.ini_pose = np.array(self.target_obj).reshape(-1) ####
                 req.limit = 2
                 req.dis = -1
                 res = self.CA_client(req)
                 pose = np.array(res.tar_pose)
-                robot_ctr.Set_ptp_speed(10)
-                robot_ctr.Step_AbsPTPCmd(pose)
+                # robot_ctr.Set_ptp_speed(10)
+                # robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.pick_obj
                 self.monitor_suc = True
                 self.arm_move = True
@@ -270,8 +271,8 @@ class EasyCATest:
                 req.dis = 6
                 res = self.CA_client(req)
                 pose = np.array(res.tar_pose)
-                robot_ctr.Set_ptp_speed(10)
-                robot_ctr.Step_AbsPTPCmd(pose)
+                # robot_ctr.Set_ptp_speed(10)
+                # robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.move2binup
                 self.arm_move = True
 
@@ -280,8 +281,8 @@ class EasyCATest:
                     time.sleep(0.3)
                     self.monitor_suc = False
                 pose = [15,15,10,180,0,0]
-                robot_ctr.Set_ptp_speed(10)
-                robot_ctr.Step_AbsPTPCmd(pose)
+                # robot_ctr.Set_ptp_speed(10)
+                # robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.move2placeup
                 self.arm_move = True
 
@@ -291,14 +292,14 @@ class EasyCATest:
                 req = tool_angleRequest()
                 req.angle = 0
                 res = self.tool_client(req)
-                robot_inputs_state = robot_ctr.Get_current_robot_inputs()
+                # robot_inputs_state = robot_ctr.Get_current_robot_inputs()
                 if robot_inputs_state[0] == False:
-                    robot_ctr.Set_digital_output(1,False)
+                    # robot_ctr.Set_digital_output(1,False)
                     self.state = State.move2pic
                     return
                 pose = [7.7,-18,5.5714,180,0,0]
-                robot_ctr.Set_ptp_speed(10)
-                robot_ctr.Step_AbsPTPCmd(pose)
+                # robot_ctr.Set_ptp_speed(10)
+                # robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.move2placeup1
                 self.arm_move = True
 
@@ -309,7 +310,7 @@ class EasyCATest:
                 pose[3:] = [degrees(abc) for abc in tf.transformations.euler_from_matrix(trans, axes='sxyz')]
                 print('pose:\,n', pose)
                 # robot_ctr.Set_ptp_speed(10)
-                robot_ctr.Step_AbsPTPCmd(pose)
+                # robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.place
                 self.arm_move = True
 
@@ -333,40 +334,41 @@ class EasyCATest:
                 trans = np.mat(trans) * self.dis_trans
                 pose[3:] = [degrees(abc) for abc in tf.transformations.euler_from_matrix(trans, axes='sxyz')]
                 print('pose:\,n', pose)
-                robot_ctr.Set_ptp_speed(10)
-                robot_ctr.Step_AbsPTPCmd(pose)
+                # robot_ctr.Set_ptp_speed(10)
+                # robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.placeup
                 self.arm_move = True
                 ##
             
             elif self.state == State.placeup:
-                robot_ctr.Set_digital_output(1,False)
+                # robot_ctr.Set_digital_output(1,False)
                 pose = [7.7,-20,5.5714,180,0,0]
-                robot_ctr.Set_ptp_speed(10)
-                robot_ctr.Step_AbsPTPCmd(pose)
+                # robot_ctr.Set_ptp_speed(10)
+                # robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.move2pic
                 self.arm_move = True
 
 if __name__ == "__main__":
     rospy.init_node('get_pcd')
-    robot_ctr = HiwinRobotInterface(robot_ip="192.168.0.1", connection_level=1,name="manipulator")
-    robot_ctr.connect()
+    # robot_ctr = HiwinRobotInterface(robot_ip="192.168.0.1", connection_level=1,name="manipulator")
+    # robot_ctr.connect()
 
 
-    robot_ctr.Set_operation_mode(0)
+    # robot_ctr.Set_operation_mode(0)
     # set tool & base coor
     tool_coor = [0,0,0,0,0,0]
     base_coor = [0,0,0,0,0,0]
-    robot_ctr.Set_base_number(5)
+    # robot_ctr.Set_base_number(5)
     # base_result = robot_ctr.Define_base(1,base_coor)
-    robot_ctr.Set_tool_number(10)
+    # robot_ctr.Set_tool_number(10)
     # tool_result = robot_ctr.Define_tool(1,tool_coor)
-    robot_ctr.Set_operation_mode(1)
-    robot_ctr.Set_override_ratio(50)
+    # robot_ctr.Set_operation_mode(1)
+    # robot_ctr.Set_override_ratio(50)
     poses = []
     strtage = EasyCATest()
     while strtage.state != State.finish and not rospy.is_shutdown():
         strtage.Mission_Trigger()
+        print('fuck')
         time.sleep(0.1)
 
 # ('self.target_obj\n ', [15.476806363754292, 59.16117557076886, -28.04519572390219, 134.60712652596033, -39.17113006977304, -31.40485516079049])
