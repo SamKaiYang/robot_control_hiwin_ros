@@ -150,7 +150,7 @@ class CollisionAvoidance:
         #=============================================================== 
         xyz = [i for i in self._tar_trans[0:3, 3:]]
         limits = [0.2, 0.4]   
-        if xyz[1] > limits[0] and xyz[1] < limits[1]:
+        if xyz[1] > limits[0] and xyz[1] < limits[1] and xyz[0] > 0.3:
             direction = np.array(np.linalg.inv(self._tar_trans[0:3, 0:3])[0:3, 0]).reshape(-1) # get base X axis in end trans
             angle = 15 if xyz[1] < 0.3 else -15 # 0.3 is middle of .2, .4
             trans_mat = np.mat(tf.transformations.rotation_matrix(radians(angle), direction, point=None)) # use axis angle to get rotation
@@ -171,6 +171,7 @@ class CollisionAvoidance:
         else:
             print('Nice__________Nice___________Nice')
         # 7.
+        self._check_position(0.01)
         mat = np.mat(np.identity(4))
         mat[2, 3] = self.suction_len
         self._tar_trans = self._tar_trans * mat
