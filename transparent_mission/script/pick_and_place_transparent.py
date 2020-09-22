@@ -498,8 +498,8 @@ if __name__ == '__main__':
 
             robot_ctr.Set_operation_mode(1)
             
-            ArmGernel_Speed = 100
-            LineDown_Speed = 10
+            ArmGernel_Speed = 10
+            LineDown_Speed = 5
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(100)
@@ -509,13 +509,26 @@ if __name__ == '__main__':
 
             GetKeyFlag = True # start strategy
             # Get_Image = 0 ,so first take a photo to see if there are objects
-        start_input = int(input('For first strategy, press 1 \n'))
+        start_input = int(input('For first strategy, press 1 \nFor test button strtegy, press 2: \n'))
 
         if start_input == 1:
             while(1):
                 Mission_Trigger()
                 if CurrentMissionType == MissionType.Mission_End:
                     rospy.on_shutdown(myhook)
+        if start_input == 2:
+            button_flag = True
+            while(1):
+                digital_input_state = robot_ctr.Get_current_digital_inputs()
+                button_flag = digital_input_state[2]
+
+                if button_flag == True:
+                    Mission_Trigger()
+                else:
+                    robot_ctr.Stop_motion()
+                    MissionType_Flag = 0
+                    GetKeyFlag = True
+                    ExecuteFlag = False
 
         rospy.spin()
     except KeyboardInterrupt:

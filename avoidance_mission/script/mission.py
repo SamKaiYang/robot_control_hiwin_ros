@@ -3,12 +3,13 @@ import enum
 import time
 import numpy as np
 import tf
+import copy
 from math import degrees, radians, cos
 from control_node import HiwinRobotInterface
 from collision_avoidance.srv import collision_avoid, collision_avoidRequest
 from hand_eye.srv import eye2base, eye2baseRequest
 from hand_eye.srv import save_pcd, save_pcdRequest
-from avoidance_mission.srv import snapshot, snapshotRequest
+from avoidance_mission.srv import snapshot, snapshotRequest, snapshotResponse
 from tool_angle.srv import tool_angle, tool_angleRequest
 
 pic_pos = \
@@ -40,6 +41,7 @@ class State(enum.IntEnum):
     get_objinfo = 8
     placeup = 9
     move2bin_middleup = 10
+    move2placeup1 = 11
 
 class EasyCATest:
     def __init__(self):
@@ -49,8 +51,8 @@ class EasyCATest:
         self.pic_pos = np.array(pic_pos)
         self.pic_pos_indx = 0
         self.target_obj = []
-        self.place_pos_left = np.array([36, -10, -28, 180, 0, 0])##
-        self.place_pos_right = np.array([36, -20, -28, 180, 0, 0])##
+        self.place_pos_left = np.array([-2.6175, -15.7, -29, 180, 0, 0])##
+        self.place_pos_right = np.array([-2.6236, -26.8867, -29, 180, 0, 0])##
         self.dis_trans = np.mat(np.identity(4))
         self.right_side = False
 
@@ -100,10 +102,10 @@ class EasyCATest:
             print("Service call failed: %s"%e)
 
     def check_side(self, trans):
-        if abs(np.dot(np.array(trans[:3, 2]), [0, 0, 1])) > 0.7:
+        if abs(np.dot(np.array(trans[:3, 2]).reshape(-1), [0, 0, 1])) > 0.7:
             if trans[2,2] > 0:
-                transform = tf.transformations.euler_matrix(radians(180), 0, 0, axes='sxyz')
-                trans = transform * trans
+                transform = tf.transformations.euler_matrix(0, radians(180), 0, axes='sxyz')
+                trans = trans * transform
                 r_side = True
             else:
                 r_side = False
@@ -111,8 +113,8 @@ class EasyCATest:
             vec_cen2obj = trans[:2, 3].reshape(-1) - np.array([0.2,0.3])
             vec_obj = trans[:2, 2]
             if np.dot(vec_cen2obj, vec_obj) / (np.linalg.norm(vec_cen2obj) * np.linalg.norm(vec_obj)) > 0:
-                transform = tf.transformations.euler_matrix(radians(180), 0, 0, axes='sxyz')
-                trans = transform * trans
+                transform = tf.transformations.euler_matrix(0, radians(180), 0, axes='sxyz')
+                trans = trans * transform
                 r_side = True
             else:
                 r_side = False
@@ -137,12 +139,13 @@ class EasyCATest:
             if self.state == State.move2pic:
                 pos = self.pic_pos[self.pic_pos_indx]
                 # self.pic_pos_indx += 1
-                # position = [pos[0], pos[1], pos[2], pos[3], pos[4], pos[5]]
-                pos[1] -= 3
+                position = [pos[0], pos[1]-3, pos[2], pos[3], pos[4], pos[5]]
+                # pos[1] -= 3
                 robot_ctr.Set_ptp_speed(10)
-                robot_ctr.Step_AbsPTPCmd(pos)
+                robot_ctr.Step_AbsPTPCmd(position)
                 self.state = State.get_objinfo
                 self.arm_move = True
+                # time.sleep(10)
 
             elif self.state == State.take_pic:
                 time.sleep(0.2)
@@ -164,8 +167,20 @@ class EasyCATest:
                 time.sleep(0.2)
                 req = snapshotRequest()
                 req.call = 0
-                res = self.get_obj_client(req)
-                if res.do == True:
+                # res = self.get_obj_client(req)
+                res = snapshotResponse()
+                res.doit = True
+                res.type = 0
+                # t = tf.transformations.rotation_matrix(radians(90), [0, 1, 0], point=None)
+                # res.trans = np.array([1,0,0,0,0,1,0,0,0,0,1,0.59,0,0,0,1])
+                # t = np.array([0.746, -0.665, -0.011, 0.172, -0.663, -0.745, 0.066, -0.089, -0.053, -0.042, -0.997, 0.58, 0,0,0,1])
+                # t = [0.108, 0.977, -0.180, -0.089, -0.993, 0.103, -0.040, -0.183, -0.020, 0.183, 0.982,0.58, 0,0,0,1]
+                t = [-0.040, -0.998, 0.033, -0.047, -0.999, 0.040, 0.012, -0.034, -0.013, -0.033, -0.999,  0.58, 0,0,0,1]
+                t = [0.906, -0.388, -0.168, -0.243, 0.334, 0.900, -0.278, -0.029, 0.259, 0.196, 0.945, 0.58, 0, 0, 0, 1]
+                t = [0.660, 0.750, -0.022, -0.282, -0.750, 0.660, 0.006, 0.146, 0.019, 0.012, 0.999, 0.58,0, 0, 0, 1]
+                res.trans = np.array(t).reshape(-1)
+                res.trans[11] = 0.58
+                if res.doit == True:
                     trans = np.mat(np.asarray(res.trans)).reshape(4,4)
                     if res.type == 0:
                         trans = np.array(trans).reshape(-1)                        
@@ -189,23 +204,26 @@ class EasyCATest:
                     self.target_obj = self.hand_eye_client(req).tar_pose
                     self.target_obj = np.mat(self.target_obj).reshape(4,4)
                     self.right_side = self.check_side(self.target_obj)
-                    
+                     
+                    x, y, z = np.array(np.multiply(self.target_obj[0:3, 3:], 100)).reshape(-1)
+                    a, b, c = [degrees(abc) for abc in tf.transformations.euler_from_matrix(self.target_obj, axes='sxyz')]
+                    self.target_obj = [x, y, z, a, b, c]
                     print('self.target_obj\n ', self.target_obj)
                     self.state = State.move2objup
                     self.pic_pos_indx = 0
                 else:
-                    self.pic_pos_indx += 1
+                    # self.pic_pos_indx += 1
                     self.pic_pos_indx = self.pic_pos_indx  if self.pic_pos_indx < len(self.pic_pos) else 0
                     self.state = State.move2pic
 
             elif self.state == State.move2objup:
-                req = collision_avoid()
-                req.ini_pose = self.target_obj ####
+                req = collision_avoidRequest()
+                req.ini_pose = np.array(self.target_obj).reshape(-1) ####
                 req.limit = 2
-                req.dis = 5
+                req.dis = 6
                 res = self.CA_client(req)
-                pose = res.tar_pose
-                self.dis_trans = res.dis_trans
+                pose = np.array(res.tar_pose)
+                self.dis_trans = np.mat(res.dis_trans).reshape(4,4)
                 self.suc_angle = res.suc_angle
                 robot_ctr.Set_ptp_speed(10)
                 robot_ctr.Step_AbsPTPCmd(pose)
@@ -218,12 +236,12 @@ class EasyCATest:
 
             elif self.state == State.move2obj:
                 robot_ctr.Set_digital_output(1,True)
-                req = collision_avoid()
-                req.ini_pose = self.target_obj ####
+                req = collision_avoidRequest()
+                req.ini_pose = np.array(self.target_obj).reshape(-1) ####
                 req.limit = 2
-                req.dis = 0
+                req.dis = -1
                 res = self.CA_client(req)
-                pose = res.tar_pose
+                pose = np.array(res.tar_pose)
                 robot_ctr.Set_ptp_speed(10)
                 robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.move2binup
@@ -237,44 +255,66 @@ class EasyCATest:
                 pose = [15,15,10,180,0,0]
                 robot_ctr.Set_ptp_speed(10)
                 robot_ctr.Step_AbsPTPCmd(pose)
-                req = tool_angleRequest()
-                req.angle = 0
-                res = self.tool_client(req)
                 self.state = State.move2placeup
                 self.arm_move = True
 
+            
+
             elif self.state == State.move2placeup:
+                req = tool_angleRequest()
+                req.angle = 0
+                res = self.tool_client(req)
                 robot_inputs_state = robot_ctr.Get_current_robot_inputs()
-                if robot_inputs_state[0] == True:
+                if robot_inputs_state[0] == False:
                     robot_ctr.Set_digital_output(1,False)
                     self.state = State.move2pic
                     return
-                if self.right_side:
-                    self.place_pos_right[0] -= 6
-                    pose = self.place_pos_right ##
-                else:
-                    self.place_pos_left[0] -= 6
-                    pose = self.place_pos_left ##
+                pose = [7.7,-18,5.5714,180,0,0]
+                robot_ctr.Set_ptp_speed(10)
+                robot_ctr.Step_AbsPTPCmd(pose)
+                self.state = State.move2placeup1
+                self.arm_move = True
+
+            elif self.state == State.move2placeup1:
+                pose = [7.7,-18,-22,180,0,0]
                 trans = tf.transformations.euler_matrix(radians(pose[3]), radians(pose[4]), radians(pose[5]), axes='sxyz')
                 trans = np.mat(trans) * self.dis_trans
                 pose[3:] = [degrees(abc) for abc in tf.transformations.euler_from_matrix(trans, axes='sxyz')]
-                robot_ctr.Set_ptp_speed(10)
+                print('pose:\,n', pose)
+                # robot_ctr.Set_ptp_speed(10)
                 robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.place
                 self.arm_move = True
 
             elif self.state == State.place:
-                relat_pos = [0,0,-30,0,0,0]
+                if self.right_side:
+                    self.place_pos_right[0] += 6
+                    if self.place_pos_right[0] > 18:
+                        self.place_pos_right[0] = 18
+                    pose = copy.deepcopy(self.place_pos_right)  ##
+                else:
+                    self.place_pos_left[0] += 6
+                    if self.place_pos_left[0] > 18:
+                        self.place_pos_left[0] = 18
+                    pose = copy.deepcopy(self.place_pos_left) ##
+                print('pose:\,n', pose)
+                trans = tf.transformations.euler_matrix(radians(pose[3]), radians(pose[4]), radians(pose[5]), axes='sxyz')
+                print(trans)
+                print(self.dis_trans)
+                trans = np.mat(trans) * self.dis_trans
+                pose[3:] = [degrees(abc) for abc in tf.transformations.euler_from_matrix(trans, axes='sxyz')]
+                print('pose:\,n', pose)
                 robot_ctr.Set_ptp_speed(10)
-                robot_ctr.Step_RelPTPCmd(relat_pos)
+                robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.placeup
                 self.arm_move = True
-
+                ##
+            
             elif self.state == State.placeup:
                 robot_ctr.Set_digital_output(1,False)
-                relat_pos = [0,0,30,0,0,0]
+                pose = [7.7,-20,5.5714,180,0,0]
                 robot_ctr.Set_ptp_speed(10)
-                robot_ctr.Step_RelPTPCmd(relat_pos)
+                robot_ctr.Step_AbsPTPCmd(pose)
                 self.state = State.move2pic
                 self.arm_move = True
 
@@ -293,7 +333,7 @@ if __name__ == "__main__":
     robot_ctr.Set_tool_number(10)
     # tool_result = robot_ctr.Define_tool(1,tool_coor)
     robot_ctr.Set_operation_mode(1)
-    robot_ctr.Set_override_ratio(100)
+    robot_ctr.Set_override_ratio(50)
     poses = []
     strtage = EasyCATest()
     while strtage.state != State.finish and not rospy.is_shutdown():

@@ -125,6 +125,8 @@ class CollisionAvoidance:
         6. caculate trans mat from end suction to obj
         7. update end trans (without suction)
         '''
+
+        self.limit = 0.13
         # 1.
         self.__get_robot_trans()
         abc = [radians(i) for i in req.ini_pose[3:]]
@@ -136,7 +138,7 @@ class CollisionAvoidance:
         self._check_position(limit if limit < 0.1 else 0.1)
         # 3.
         mat = np.mat(np.identity(4))
-        dis = req.dis/100 if req.dis is not None and req.dis > 0 else 0
+        dis = req.dis/100 if req.dis is not None and req.dis > -0.01 else  -0.01
         mat[2, 3] = -dis if dis < 0.1 else -0.1
         mat[2, 3] -= self.suction_len
         self._tar_trans = self._tar_trans * mat
