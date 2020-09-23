@@ -370,8 +370,8 @@ def MotionItem(ItemNo):
             print("MoveToObj_Pick1")
             MotionStep += 1
             break
-        if case(Arm_cmd.MoveToObj_Pick2):
-            positon = [target_base_avoidance[0],target_base_avoidance[1],-29.9,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+        if case(Arm_cmd.MoveToObj_Pick2):  # 0923 ori y   ori  +0  , z  -29.9  
+            positon = [target_base_avoidance[0],target_base_avoidance[1]+0.3,-30,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
             robot_ctr.Set_override_ratio(LineDown_Speed) ##speed low
 
@@ -394,7 +394,9 @@ def MotionItem(ItemNo):
                 MotionStep += 1 # tmp
             break
         if case(Arm_cmd.MoveToObj_PickUp):
-            time.sleep(0.3)  # pause pick for check sucker ready
+            #time.sleep(0.3)  # pause pick for check sucker ready  #0923
+            positon = [0,-0.3,0,0,0,0]
+            robot_ctr.Step_RelLineCmd(positon,0,10)
             if Stop_motion_flag == True: #There are early pick up items
                 # Stop_motion_flag = False
                 print("Absort success fucccccckkkkk") 
@@ -451,7 +453,7 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.Get_Image):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic
-            time.sleep(0.3) # Delayed time to see
+            time.sleep(0.3) # Delayed time to see  #0923  ori time.sleep(0.3)
             Obj_Data_Calculation()
             if obj_num == 0: # If you don't see the object,Mission End
                 MissionType_Flag = MissionType.Mission_End

@@ -380,7 +380,7 @@ def MotionItem(ItemNo):
 
             if bottom_count < len(pocky.bottom_box):
                 Obj_Data_Calculation_down(pocky.bottom_CenterX[bottom_count],pocky.bottom_CenterY[bottom_count])
-                positon = [target_down_base[0]+10,target_down_base[1]-20.7,-19.6414,180,0,pocky.bottom_Angle[bottom_count]] ## Z test
+                positon = [target_down_base[0]+9.1,target_down_base[1]-20.1,-19.6414,180,0,pocky.bottom_Angle[bottom_count]] ## Z test
                 robot_ctr.Step_AbsPTPCmd(positon)
                 robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
                 bottom_count += 1
@@ -421,7 +421,7 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.Get_Image):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic
-            time.sleep(0.3) # Delayed time to see
+            #time.sleep(0.3) # Delayed time to see
             pocky = pocky_data_client(1)
             if pocky.is_done == True:
                 MissionType_Flag = MissionType.Pick
@@ -431,7 +431,7 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.Go_back_home):
             positon =  [11.3440, 36.4321, 11.23, 179.994, 10.002, -0.488]
             robot_ctr.Step_AbsPTPCmd(positon)
-            robot_ctr.Set_override_ratio(10) ##speed add
+            robot_ctr.Set_override_ratio(ArmGernel_Speed) ##speed add
             print("MissionEnd")
             MotionStep += 1
             break
@@ -485,7 +485,7 @@ if __name__ == '__main__':
             robot_ctr.Set_operation_mode(1)
             
             ArmGernel_Speed = 100
-            LineDown_Speed = 15
+            LineDown_Speed = 100
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(100)

@@ -12,7 +12,7 @@ from hand_eye.srv import save_pcd, save_pcdRequest
 from avoidance_mission.srv import snapshot, snapshotRequest, snapshotResponse
 from tool_angle.srv import tool_angle, tool_angleRequest
 RATIO = 50
-PTPSPEED = 15
+PTPSPEED = 20
 PTPSPEED_SLOW = 10
 
 pic_pos = \
@@ -139,17 +139,22 @@ class EasyCATest:
                 time.sleep(0.2)
                 self.monitor_suc = False
                 self.state = State.pick_obj
-        dig_inputs = robot_ctr.Get_current_digital_inputs()
-        if self.stop_flg == True:
-            if dig_inputs[2] == False
-                self.stop_flg = False
-            self.state = State.move2pic
-        elif dig_inputs[2] == True:
-            self.stop_flg = True
-            return
+        # dig_inputs = robot_ctr.Get_current_digital_inputs()
+        # if self.stop_flg == True:
+        #     if dig_inputs[2] == False:
+        #         self.stop_flg = False
+        #         print('QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ')
+        #     self.state = State.move2pic
+        #     print('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF')
+        # elif dig_inputs[2] == True:
+        #     self.stop_flg = True
+        #     return
+
+        # print("sdfsdfdsdfgsdfgsdfg")
 
         if robot_ctr.get_robot_motion_state() == Arm_status.Idle and self.arm_move == False:
             if self.state == State.move2pic:
+                print("sdfsdfdsdfgsdfgsdfg")
                 pos = self.pic_pos[self.pic_pos_indx]
                 # self.pic_pos_indx += 1
                 position = [pos[0], pos[1]-3, pos[2], pos[3], pos[4], pos[5]]
@@ -159,6 +164,7 @@ class EasyCATest:
                 self.state = State.get_objinfo
                 self.arm_move = True
                 # time.sleep(10)
+                print("sdfsdfdsdfgsdfgsdfg")
 
             elif self.state == State.take_pic:
                 time.sleep(0.2)
@@ -178,6 +184,7 @@ class EasyCATest:
 
             elif self.state == State.get_objinfo:
                 time.sleep(0.2)
+                print("SSSSSSSSSSSSSSSSSSSSSSSSSSSS")
                 req = snapshotRequest()
                 req.call = 0
                 res = self.get_obj_client(req)
@@ -196,6 +203,7 @@ class EasyCATest:
                 if res.doit == True:
                     trans = np.mat(np.asarray(res.trans)).reshape(4,4)
                     trans[2,3] = 0.59
+                    trans[0,3] += 0.015 
                     if res.type == 1:
                         trans = np.array(trans).reshape(-1)                        
                     elif res.type == 2: # y 90

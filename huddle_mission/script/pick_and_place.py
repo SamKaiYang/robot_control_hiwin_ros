@@ -380,7 +380,7 @@ def MotionItem(ItemNo):
             break
         if case(Arm_cmd.Absort_OFF):
             robot_ctr.Set_digital_output(1,False)
-            time.sleep(0.2)
+            time.sleep(0.05) ####0923
             print("Absort_OFF")
             MotionStep += 1
             break
@@ -403,7 +403,7 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.Get_Image):
             CurrentMissionType = MissionType.Get_Img
             ### test take pic
-            time.sleep(0.3) # Delayed time to see
+            time.sleep(0.2) # Delayed time to see  ## 0923
             ###test 0921
             print("take obj data")
             huddle = huddle_data_client(1)
@@ -474,7 +474,7 @@ if __name__ == '__main__':
             robot_ctr.Set_operation_mode(1)
             
             ArmGernel_Speed = 100
-            LineDown_Speed = 15
+            LineDown_Speed = 100
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(100)
