@@ -1,0 +1,8 @@
+bool picture_pose_reached
+---
+bool confi
+float64 center_point_x
+float64 center_point_y
+float64 center_point_z
+float64 ang
+bool is_done
