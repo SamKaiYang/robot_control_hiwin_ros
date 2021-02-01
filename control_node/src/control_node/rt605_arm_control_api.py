@@ -75,40 +75,43 @@ class HiwinRobotInterface(object):
         self.Goal = [0.0,36.8,11.35,-180,0,90]
         # Load the SDK
         # Make sure the SKL library absolute file contains the file
+
         assert os.path.exists(HRSDK_DLL_PATH), \
             "HRSDK not found. Given path: {path}".format(path=HRSDK_DLL_PATH)
         self.HRSDKLib = cdll.LoadLibrary(HRSDK_DLL_PATH)
-        try:
-            self.HRSDKLib.set_log_level(c_int(3))
-        except AttributeError:
-            pass
+        # try:
+        #     self.HRSDKLib.set_log_level(c_int(3))
+        # except AttributeError:
+        #     pass
+
         # Get the callback function
         callback_type = CFUNCTYPE(None, c_uint16, c_uint16,
                                   POINTER(c_uint16), c_int)
         self.callback = callback_type(callback_function)
         self.reconnecting = False  # Used to know if we are trying to reconnect
 
-        self.__pub_threads = threading.Thread(target=self.__pub_robot_info)
-        self.__robot_info_pub = rospy.Publisher(
-            'robot/curr_info',
-            robot_info,
-            queue_size=1
-        )
-        self.__pub_threads.setDaemon(True)
-        self.__pub_threads.start()
+    #     self.__pub_threads = threading.Thread(target=self.__pub_robot_info)
+    #     self.__robot_info_pub = rospy.Publisher(
+    #         'robot/curr_info',
+    #         robot_info,
+    #         queue_size=1
+    #     )
+    #     print("A")
+    #     self.__pub_threads.setDaemon(True)
+    #     self.__pub_threads.start()
 
-    def __pub_robot_info(self):
-        rate = rospy.Rate(10)
-        while not rospy.is_shutdown():
-            try:
-                msg = robot_info()
-                msg.curr_pose = self.Get_current_position()
-                _, msg.tool_coor = self.Get_tool_data()
-                # _, msg.base_coor = self.Get_base_data()
-                self.__robot_info_pub.publish(msg)
-                rate.sleep()
-            except KeyboardInterrupt:
-                break
+    # def __pub_robot_info(self):
+    #     rate = rospy.Rate(10)
+    #     while not rospy.is_shutdown():
+    #         try:
+    #             msg = robot_info()
+    #             msg.curr_pose = self.Get_current_position()
+    #             _, msg.tool_coor = self.Get_tool_data()
+    #             # _, msg.base_coor = self.Get_base_data()
+    #             self.__robot_info_pub.publish(msg)
+    #             rate.sleep()
+    #         except KeyboardInterrupt:
+    #             break
 
 
 
@@ -186,8 +189,8 @@ class HiwinRobotInterface(object):
         :return
             Success: True if successfully disconnected, False otherwise
         """
-        error_id = self.HRSDKLib.close_connection(c_int(self.robot_id))
-
+        error_id = self.HRSDKLib.disconnect(c_int(self.robot_id))
+        #close_connection => disconnect 2.2.9
         # If correctly disconnected error_id is equal to 0
         if error_id == 0:
             return True
