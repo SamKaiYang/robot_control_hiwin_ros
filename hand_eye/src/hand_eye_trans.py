@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import os
 import numpy as np
 import rospy
@@ -122,7 +122,10 @@ class HandEyeTrans:
         self._rtool_tool_trans[0:3, 3:] = np.mat([i/100 for i in self._tool_coor[:3]]).reshape(3, 1)
 
     def __eye2base_transform(self, req):
+        print("====================================")
+        print("self._curr_pose: ", self._curr_pose)
         self.__get_robot_trans()
+        print("ini_pose: ", req.ini_pose)
         eye_obj_trans = np.mat(np.append(np.array(req.ini_pose), 1)).reshape(4, 1)
         eye_obj_trans[:3] = np.multiply(eye_obj_trans[:3], 0.01)
         print('eye_obj_trans/n', eye_obj_trans)
@@ -136,13 +139,20 @@ class HandEyeTrans:
         return res
 
     def __eye_trans2base_transform(self, req):
+        print("====================================")
+        print("self._curr_pose: ", self._curr_pose)
         self.__get_robot_trans()
         eye_obj_trans = np.mat(req.ini_pose).reshape(4, 4)
         result = self._base_tool_trans * np.linalg.inv(self._rtool_tool_trans) * self._rtool_eye_trans * eye_obj_trans
+        print('eye_obj_trans/n', eye_obj_trans)
         print('_base_tool_trans/n', self._base_tool_trans)
         print('_rtool_tool_trans/n', np.linalg.inv(self._rtool_tool_trans))
         print('_rtool_eye_trans/n', self._rtool_eye_trans)
         print('self.eye_obj_trans/n', eye_obj_trans)
+        print('1\n', self._base_tool_trans * np.linalg.inv(self._rtool_tool_trans))
+        print('2\n', self._base_tool_trans * np.linalg.inv(self._rtool_tool_trans) * self._rtool_eye_trans)
+
+
         res = eye2baseResponse()
         res.tar_pose = np.array(result).reshape(-1)
         print('result\\n', result)

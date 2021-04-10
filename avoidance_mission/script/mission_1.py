@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import rospy
 import enum
 import time
@@ -16,7 +17,7 @@ PTPSPEED = 20
 PTPSPEED_SLOW = 10
 
 pic_pos = \
-[[11., 27., 14., 179.948, 10.215, -0.04],
+[[11., 27., 17.5, 179.948, 10.215, -0.04],
 [11., 11., 14., -155.677, 9.338, 4.16],
 [11., 45., 15., 162.071, 8.982, -2.503],
 [20., 29., 13., -179.401, 20.484, 0.484],
@@ -131,6 +132,10 @@ class EasyCATest:
     def Mission_Trigger(self):
         if self.arm_move == True and robot_ctr.get_robot_motion_state() == Arm_status.Isbusy:
             self.arm_move = False
+        elif self.arm_move == True:
+            time.sleep(0.2)
+            if robot_ctr.get_robot_motion_state() == Arm_status.Idle:
+                self.arm_move = False 
         # if Arm_state_flag == Arm_status.Idle and Sent_data_flag == 1:
         if self.monitor_suc == True:
             robot_inputs_state = robot_ctr.Get_current_robot_inputs()
@@ -202,32 +207,34 @@ class EasyCATest:
                 # res.trans[11] = 0.58
                 if res.doit == True:
                     trans = np.mat(np.asarray(res.trans)).reshape(4,4)
-                    trans[2,3] = 0.59
-                    trans[0,3] += 0.015 
-                    if res.type == 1:
-                        trans = np.array(trans).reshape(-1)                        
-                    elif res.type == 2: # y 90
-                        # pre_trans = np.mat([[1., 0, 0, 0],
-                        #                     [0,  1, 0, 0],
-                        #                     [0,  0, 1, 0],
-                        #                     [0,  0, 0, 1]])
-                        pre_trans = tf.transformations.euler_matrix(0, radians(90), 0, axes='sxyz')
-                        trans = trans * pre_trans
-                        # trans = pre_trans * trans
-                        trans = np.array(trans).reshape(-1)
-                    elif res.type == 3: # -90
-                        # pre_trans = np.mat([[1., 0, 0, 0],
-                        #                     [0,  1, 0, 0],
-                        #                     [0,  0, 1, 0],
-                        #                     [0,  0, 0, 1]])
-                        pre_trans = tf.transformations.euler_matrix(0, radians(-90), 0, axes='sxyz')
-                        trans = trans * pre_trans
-                        # trans = pre_trans * trans
-                        print('fucktrans', trans)
-                        trans = np.array(trans).reshape(-1)
+                    trans[2,3] = 0.61
+                    # trans[0,3] += 0.015
+                    trans = np.array(trans).reshape(-1)
+                    # if res.type == 1:
+                    #     trans = np.array(trans).reshape(-1)                        
+                    # elif res.type == 2: # y 90
+                    #     # pre_trans = np.mat([[1., 0, 0, 0],
+                    #     #                     [0,  1, 0, 0],
+                    #     #                     [0,  0, 1, 0],
+                    #     #                     [0,  0, 0, 1]])
+                    #     pre_trans = tf.transformations.euler_matrix(0, radians(90), 0, axes='sxyz')
+                    #     trans = trans * pre_trans
+                    #     # trans = pre_trans * trans
+                    #     trans = np.array(trans).reshape(-1)
+                    # elif res.type == 3: # -90
+                    #     # pre_trans = np.mat([[1., 0, 0, 0],
+                    #     #                     [0,  1, 0, 0],
+                    #     #                     [0,  0, 1, 0],
+                    #     #                     [0,  0, 0, 1]])
+                    #     pre_trans = tf.transformations.euler_matrix(0, radians(-90), 0, axes='sxyz')
+                    #     trans = trans * pre_trans
+                    #     # trans = pre_trans * trans
+                    #     print('fucktrans', trans)
+                    #     trans = np.array(trans).reshape(-1)
 
                     req = eye2baseRequest()
                     req.ini_pose = trans ##
+                    print("req.ini_pose: ", req.ini_pose)
                     self.target_obj = self.hand_eye_client(req).tar_pose
                     self.target_obj = np.mat(self.target_obj).reshape(4,4)
                     self.right_side = self.check_side(self.target_obj)

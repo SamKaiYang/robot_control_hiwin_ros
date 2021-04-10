@@ -42,8 +42,8 @@ CurrentMissionType = 0
 arm_move_times = 1
 
 ###---pixel z to base data init
-camera_z = 52.5
-
+#camera_z = 52.5
+camera_z = 53
 ## strategy data init 
 obj_num = 0
 pick_obj_times = 0
@@ -371,7 +371,7 @@ def MotionItem(ItemNo):
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToObj_Pick2):  # 0923 ori y   ori  +0  , z  -29.9  
-            positon = [target_base_avoidance[0],target_base_avoidance[1]+0.3,-30,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+            positon = [target_base_avoidance[0],target_base_avoidance[1],-30,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
             robot_ctr.Set_override_ratio(LineDown_Speed) ##speed low
 
@@ -395,7 +395,7 @@ def MotionItem(ItemNo):
             break
         if case(Arm_cmd.MoveToObj_PickUp):
             #time.sleep(0.3)  # pause pick for check sucker ready  #0923
-            positon = [0,-0.3,0,0,0,0]
+            positon = [0,-0.4,0,0,0,0]
             robot_ctr.Step_RelLineCmd(positon,0,10)
             if Stop_motion_flag == True: #There are early pick up items
                 # Stop_motion_flag = False
@@ -437,17 +437,17 @@ def MotionItem(ItemNo):
             MotionStep += 1
             break
         if case(Arm_cmd.Go_Image2):
-            CurrentMissionType = MissionType.Get_Img2
-            baseRequest = eye2baseRequest()
-            baseRequest.ini_pose = [boxes.x,boxes.y,camera_z]
-            Get_Image_Point_Base = pixel_z_to_base_client(baseRequest) #[x,y,z]
-            avoidRequest_Get_Image_Point = collision_avoidRequest()
-            avoidRequest_Get_Image_Point.ini_pose = [Get_Image_Point_Base[0]-7,Get_Image_Point_Base[1],Get_Image_Point_Base[2],180,10,0] 
-            avoidRequest_Get_Image_Point.limit = 0.1 # test
-            avoidRequest_Get_Image_Point.dis = 30 # test 
-            Get_Image_Point_base_avoidance = base_avoidance_client(avoidRequest_Get_Image_Point)
-            positon =  [Get_Image_Point_base_avoidance[0], Get_Image_Point_base_avoidance[1], Get_Image_Point_base_avoidance[2], Get_Image_Point_base_avoidance[3], Get_Image_Point_base_avoidance[4], Get_Image_Point_base_avoidance[5]]
-            robot_ctr.Step_AbsPTPCmd(positon)
+            # CurrentMissionType = MissionType.Get_Img2
+            # baseRequest = eye2baseRequest()
+            # baseRequest.ini_pose = [boxes.x,boxes.y,camera_z]
+            # Get_Image_Point_Base = pixel_z_to_base_client(baseRequest) #[x,y,z]
+            # avoidRequest_Get_Image_Point = collision_avoidRequest()
+            # avoidRequest_Get_Image_Point.ini_pose = [Get_Image_Point_Base[0]-7,Get_Image_Point_Base[1],Get_Image_Point_Base[2],180,10,0] 
+            # avoidRequest_Get_Image_Point.limit = 0.1 # test
+            # avoidRequest_Get_Image_Point.dis = 30 # test 
+            # Get_Image_Point_base_avoidance = base_avoidance_client(avoidRequest_Get_Image_Point)
+            # positon =  [Get_Image_Point_base_avoidance[0], Get_Image_Point_base_avoidance[1], Get_Image_Point_base_avoidance[2], Get_Image_Point_base_avoidance[3], Get_Image_Point_base_avoidance[4], Get_Image_Point_base_avoidance[5]]
+            # robot_ctr.Step_AbsPTPCmd(positon)
             MotionStep += 1
             break
         if case(Arm_cmd.Get_Image):
@@ -525,8 +525,8 @@ if __name__ == '__main__':
 
             robot_ctr.Set_operation_mode(1)
             
-            ArmGernel_Speed = 100
-            LineDown_Speed = 15
+            ArmGernel_Speed = 50
+            LineDown_Speed = 5
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(100)

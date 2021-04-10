@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import os
 import time
 import numpy as np
@@ -9,7 +9,7 @@ import enum
 import argparse
 #import Hiwin_RT605_Socket_test_andy as ArmTask
 from control_node import HiwinRobotInterface
-from pushpin_mission.srv import hand_eye_calibration, hand_eye_calibrationRequest
+from hand_eye.srv import hand_eye_calibration, hand_eye_calibrationRequest, hand_eye_calibrationResponse 
 from geometry_msgs.msg import Transform
 from math import radians, degrees, pi
 from std_msgs.msg import String, Bool
@@ -69,6 +69,7 @@ class CameraCalib:
         # a = radians(pose[4]) + pi
         # b = -1 * (pi/2 + radians(pose[3]))
         # c = radians(pose[5]) + pi/2
+        print("fb_pos: ", pose)
         a = radians(pose[3])
         b = radians(pose[4])
         c = radians(pose[5])
@@ -79,15 +80,16 @@ class CameraCalib:
         # print(R)
         # print('------------------------------------------------------------------------')
         res = np.array([])
-        res = np.append(res, pose[0]/1000)
-        res = np.append(res, pose[1]/1000)
-        res = np.append(res, pose[2]/1000)
+        res = np.append(res, pose[0]/100)
+        res = np.append(res, pose[1]/100)
+        res = np.append(res, pose[2]/100)
         res = np.append(res, quaternion)
         return res
 
     def hand_eye_client(self, req):
         rospy.wait_for_service('/camera/hand_eye_calibration')
         try:
+            print("FUCKU")
             hand_eye = rospy.ServiceProxy('/camera/hand_eye_calibration', hand_eye_calibration)
             res = hand_eye(req)
             return res
@@ -95,8 +97,15 @@ class CameraCalib:
             print("Service call failed: %s"%e)
 
     def Mission_Trigger(self):
+        #print("YO")
         if self.arm_move == True and robot_ctr.get_robot_motion_state() == Arm_status.Isbusy:
             self.arm_move = False
+            print("status1 = ", robot_ctr.get_robot_motion_state())
+        elif self.arm_move == True:
+            time.sleep(0.2)
+            print("status2 = ", robot_ctr.get_robot_motion_state())
+            if robot_ctr.get_robot_motion_state() == Arm_status.Idle:
+                self.arm_move = False
         # if Arm_state_flag == Arm_status.Idle and Sent_data_flag == 1:
         if robot_ctr.get_robot_motion_state() == Arm_status.Idle and self.arm_move == False:
             if self.state == State.move: 
@@ -106,6 +115,7 @@ class CameraCalib:
                 positon = [pos[0]/10, pos[1]/10, pos[2]/10, pos[3], pos[4], pos[5]]
                 # ArmTask.point_data(pos[0], pos[1], pos[2], pos[3], pos[4], pos[5])
                 # ArmTask.Arm_Mode(2,1,0,30,2)  #action,ra,grip,vel,both
+                print("cmd_pos: ", positon)
                 robot_ctr.Set_override_ratio(20)
                 robot_ctr.Step_AbsPTPCmd(positon)
                 self.pos = np.delete(self.pos, 0, 0)
@@ -129,7 +139,9 @@ class CameraCalib:
                 req.end_trans.rotation.y    = pose[4]
                 req.end_trans.rotation.z    = pose[5]
                 req.end_trans.rotation.w    = pose[6]
+                res = hand_eye_calibrationResponse()
                 res = self.hand_eye_client(req)
+                print("res = ", res)
                 if res.is_done:
                     self.state = State.finish
                     # ArmTask.point_data(0, 36.8, 11.35, -90, 0, 0)
@@ -138,7 +150,8 @@ class CameraCalib:
                     robot_ctr.Set_override_ratio(20)
                     robot_ctr.Step_AbsPTPCmd(positon)
                     trans_mat = np.array(res.end2cam_trans).reshape(4,4)
-                    camera_mat = np.array(res.camera_mat).reshape(4, 4)
+                    camera_mat = np.array(res.camera_mat).reshape(3, 3)
+
                     print('##################################################################')
                     print(trans_mat)
                     print('##################################################################')
@@ -146,7 +159,8 @@ class CameraCalib:
                     config.optionxform = str  #reference: http://docs.python.org/library/configparser.html
                     curr_path = os.path.dirname(os.path.abspath(__file__))
                     # config.read(['img_trans_pinto.ini', curr_path])
-                    config.read(curr_path + '/img_trans.ini')
+                    print(curr_path)
+                    config.read(curr_path + '\..\config\img_trans.ini')
                     
                     config.set("External", "Key_1_1", str(trans_mat[0][0]))
                     config.set("External", "Key_1_2", str(trans_mat[0][1]))
@@ -171,7 +185,7 @@ class CameraCalib:
                     config.set("Internal", "Key_3_2", str(camera_mat[2][1]))
                     config.set("Internal", "Key_3_3", str(camera_mat[2][2]))
 
-                    config.write(open(curr_path + '/img_trans.ini', 'wb'))
+                    config.write(open(curr_path + '\..\config\img_trans.ini', 'wb'))
 
                 else:
                     self.state = State.move

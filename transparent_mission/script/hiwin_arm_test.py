@@ -74,21 +74,25 @@ def test_task():
     if Arm_state == 1:
         if ItemNo==0:
             positon = [0.0,36.8,11.35,-180,0,90]
+            positon =  [11.3440, 26.4321, 11.23, 180, 10, 0]
             robot_ctr.Step_AbsPTPCmd(positon)
             ItemNo = 1
             print("task:0")
         elif ItemNo==1:
             positon = [0.0,46.8,11.35,-180,0,90]
+            positon =  [11.3440, 30, 11.23, 180, 0,45]
             robot_ctr.Step_AbsPTPCmd(positon)
             ItemNo = 2
             print("task:1")
         elif ItemNo==2:
             positon = [-10.0,26.8,11.35,-180,0,90]
+            positon =  [11.3440, 26.4321,15, 180,-10,0]
             robot_ctr.Step_AbsPTPCmd(positon)
             ItemNo = 3
             print("task:2")
         elif ItemNo==3:
             positon = [10.0,46.8,11.35,-180,0,90]
+            positon =  [15, 26.4321, 11.23,180, 0,-45]
             robot_ctr.Step_AbsPTPCmd(positon)
             ItemNo = 4
             print("task:3")
@@ -157,12 +161,12 @@ if __name__ == '__main__':
             robot_ctr.Set_digital_output(2,False)
             robot_ctr.Set_digital_output(3,False)
         while(1):
-            #test_task()
+            test_task()
             #print("boxes:",boxes)
             #robot_ctr.Set_digital_input(2,1)
-            robot_outputs_state = robot_ctr.Get_current_robot_outputs()
-            robot_inputs_state = robot_ctr.Get_current_robot_inputs()
-            digital_output_state = robot_ctr.Get_current_digital_outputs()
+            # robot_outputs_state = robot_ctr.Get_current_robot_outputs()
+            # robot_inputs_state = robot_ctr.Get_current_robot_inputs()
+            # digital_output_state = robot_ctr.Get_current_digital_outputs()
             #print("robot outputs state:",robot_outputs_state)
             #print("robot inputs state:",robot_inputs_state)
 

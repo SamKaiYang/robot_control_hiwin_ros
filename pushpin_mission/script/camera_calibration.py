@@ -130,6 +130,7 @@ class CameraCalib:
                 req.end_trans.rotation.z    = pose[5]
                 req.end_trans.rotation.w    = pose[6]
                 res = self.hand_eye_client(req)
+                print("RRRRRR:", res.is_done)
                 if res.is_done:
                     self.state = State.finish
                     # ArmTask.point_data(0, 36.8, 11.35, -90, 0, 0)

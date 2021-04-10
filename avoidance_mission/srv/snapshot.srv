@@ -1,6 +1,6 @@
 int64 call
 ---
-int64 type
+string type
 bool  doit
 float64[] trans
 

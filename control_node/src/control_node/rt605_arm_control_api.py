@@ -75,13 +75,15 @@ class HiwinRobotInterface(object):
         self.Goal = [0.0,36.8,11.35,-180,0,90]
         # Load the SDK
         # Make sure the SKL library absolute file contains the file
+
         assert os.path.exists(HRSDK_DLL_PATH), \
             "HRSDK not found. Given path: {path}".format(path=HRSDK_DLL_PATH)
         self.HRSDKLib = cdll.LoadLibrary(HRSDK_DLL_PATH)
-        try:
-            self.HRSDKLib.set_log_level(c_int(3))
-        except AttributeError:
-            pass
+        # try:
+        #     self.HRSDKLib.set_log_level(c_int(3))
+        # except AttributeError:
+        #     pass
+
         # Get the callback function
         callback_type = CFUNCTYPE(None, c_uint16, c_uint16,
                                   POINTER(c_uint16), c_int)
@@ -94,8 +96,8 @@ class HiwinRobotInterface(object):
             robot_info,
             queue_size=1
         )
+        print("A")
         self.__pub_threads.setDaemon(True)
-        self.__pub_threads.start()
 
     def __pub_robot_info(self):
         rate = rospy.Rate(10)
@@ -133,6 +135,8 @@ class HiwinRobotInterface(object):
                 self.HRSDKLib.set_override_ratio(c_int(self.robot_id),
                                                 c_int(10))
             rospy.loginfo("HIWIN Robot '{}' successfully connected.".format(self.name))
+            self.__pub_threads.start()
+
         else:
             success = False
         return success
@@ -186,8 +190,8 @@ class HiwinRobotInterface(object):
         :return
             Success: True if successfully disconnected, False otherwise
         """
-        error_id = self.HRSDKLib.close_connection(c_int(self.robot_id))
-
+        error_id = self.HRSDKLib.disconnect(c_int(self.robot_id))
+        #close_connection => disconnect 2.2.9
         # If correctly disconnected error_id is equal to 0
         if error_id == 0:
             return True
