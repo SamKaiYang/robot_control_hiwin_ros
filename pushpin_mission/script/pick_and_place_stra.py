@@ -30,6 +30,7 @@ ItemNo = 0
 positon = [0.0,0.0,10.0,-180,0,0]
 Goal = [0.0,0.0,10.0,-180,0,0]
 
+box_position = 5 #initial in the middle of the box
 ##-----Mission dataset
 GetInfoFlag = False
 ExecuteFlag = False
@@ -56,7 +57,16 @@ objects_picked_num = 0#Number of objects picked
 
 LineDown_Speed = 3
 ArmGernel_Speed = 5
-
+class box_position_enum(enum.IntEnum):
+    ahead_left = 1
+    ahead = 2
+    ahead_right = 3
+    left = 4
+    middle = 5
+    right = 6
+    rear_left = 7
+    rear = 8
+    rear_right = 9
 class Arm_cmd(enum.IntEnum):
     MoveToObj_Pick1 = 1
     MoveToTarget_Place = 2
@@ -114,7 +124,68 @@ class bounding_boxes():
         self.data = []
 
 boxes = bounding_boxes(0,0,0,0,0)
-
+def pick_back():
+    for case in switch(box_position):
+        if case(box_position_enum.ahead_left):
+            target_base_above_avoidance[0] = target_base_above_avoidance[0] -0.2
+            target_base_above_avoidance[1] = target_base_above_avoidance[1] -0.2
+            break
+        if case(box_position_enum.ahead):
+            target_base_above_avoidance[0] = target_base_above_avoidance[0] -0.3
+            break
+        if case(box_position_enum.ahead_right):
+            target_base_above_avoidance[0] = target_base_above_avoidance[0] -0.2
+            target_base_above_avoidance[1] = target_base_above_avoidance[1] +0.2
+            break
+        if case(box_position_enum.left):
+            target_base_above_avoidance[1] = target_base_above_avoidance[1] -0.3
+            break
+        if case(box_position_enum.middle):
+            target_base_above_avoidance[1] = target_base_above_avoidance[1] +0.3
+            break
+        if case(box_position_enum.right):
+            target_base_above_avoidance[1] = target_base_above_avoidance[1] +0.3
+            break
+        if case(box_position_enum.rear_left):
+            target_base_above_avoidance[0] = target_base_above_avoidance[0] +0.2
+            target_base_above_avoidance[1] = target_base_above_avoidance[1] -0.2
+            break
+        if case(box_position_enum.rear):
+            target_base_above_avoidance[0] = target_base_above_avoidance[0] +0.2
+            break
+        if case(box_position_enum.rear_right):
+            target_base_above_avoidance[0] = target_base_above_avoidance[0] +0.2
+            target_base_above_avoidance[1] = target_base_above_avoidance[1] +0.2
+            break
+def pick_forward():
+    for case in switch(box_position):
+        if case(box_position_enum.ahead_left):
+            positon = [0.3,0.3,0,0,0,0] 
+            break
+        if case(box_position_enum.ahead):
+            positon = [0.4,0,0,0,0,0] 
+            break
+        if case(box_position_enum.ahead):
+            positon = [0.3,-0.3,0,0,0,0] 
+            break
+        if case(box_position_enum.ahead):
+            positon = [0,0.4,0,0,0,0] 
+            break
+        if case(box_position_enum.ahead):
+            positon = [0,-0.5,0,0,0,0] 
+            break
+        if case(box_position_enum.ahead):
+            positon = [0,-0.4,0,0,0,0] 
+            break
+        if case(box_position_enum.ahead):
+            positon = [0.2,-0.2,0,0,0,0] 
+            break
+        if case(box_position_enum.ahead):
+            positon = [0.2,0,0,0,0,0] 
+            break
+        if case(box_position_enum.ahead):
+            positon = [-0.3,-0.3,0,0,0,0] 
+            break
 def Yolo_callback(data):
     global obj_num,pick_obj_times
     check_obj_count = 0
@@ -176,20 +247,32 @@ def Obj_Data_Calculation():  #Enter the number of objects that have been picked 
     # tool left
     if target_base[1] >= 48.5 and target_base[0] >= 30.5: #ahead #left
         C_posture = 135
+        box_position = box_position_enum.ahead_left
     elif target_base[1] <= 9 and target_base[0] >= 30.5: #ahead #right
         C_posture = 45
+        box_position = box_position_enum.right
     elif target_base[0] <= 9 and target_base[1] >= 48.5: #left #rear
         C_posture = -135
+        box_position = box_position_enum.rear_left
     elif target_base[0] <= 9 and target_base[1] <= 9:  #right#rear 
         C_posture = -45
+        box_position = box_position_enum.rear_right
     elif target_base[1] >= 48.5: #left
         C_posture = -180
+        box_position = box_position_enum.left
     elif target_base[1] <= 9: #right
         C_posture = 0
+        box_position = box_position_enum.right
     elif target_base[0] >= 30.5: #ahead
         C_posture = 90
+        box_position = box_position_enum.ahead
     elif target_base[0] <= 9: #rear  
         C_posture = -90
+        box_position = box_position_enum.rear
+    else: 
+        C_posture = 0
+        box_position = box_position_enum.middle
+
     ### Avoid singularities for pushpin mission
     if target_base[0] >= 30.5 and target_base[1] > 19.5 and target_base[1] <= 39.5:
         A_posture = 20
@@ -208,6 +291,8 @@ def Obj_Data_Calculation():  #Enter the number of objects that have been picked 
     avoidRequest.limit = 0.1 # test
     avoidRequest.dis = 0 # test 
     target_base_avoidance = base_avoidance_client(avoidRequest)
+
+    pick_back() # suck back position
 def pixel_z_to_base_client(pixel_to_base):
     rospy.wait_for_service('robot/pix2base')
     try:
@@ -364,14 +449,14 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.Arm_Stop):
             print("Arm_Stop")
             break
-        if case(Arm_cmd.MoveToObj_Pick1): # 210411 y +0.3 
-            positon = [target_base_above_avoidance[0],target_base_above_avoidance[1]+0.3,target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
+        if case(Arm_cmd.MoveToObj_Pick1): # 210411 y +0 
+            positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsPTPCmd(positon)
             print("MoveToObj_Pick1")
             MotionStep += 1
             break
-        if case(Arm_cmd.MoveToObj_Pick2):  # 0923 ori y   ori  +0  , z  -29.9   # 210411 y +0.3  z -30.15
-            positon = [target_base_avoidance[0],target_base_avoidance[1]+0.3,-30.15,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+        if case(Arm_cmd.MoveToObj_Pick2): # 210411 y+0  z -30.15
+            positon = [target_base_avoidance[0],target_base_avoidance[1],-30.15,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
             robot_ctr.Set_override_ratio(LineDown_Speed) ##speed low
 
@@ -395,7 +480,8 @@ def MotionItem(ItemNo):
             break
         if case(Arm_cmd.MoveToObj_PickUp):
             #time.sleep(0.3)  # pause pick for check sucker ready  #0923
-            positon = [0,-0.5,0,0,0,0] # 210411 -0,5
+            #positon = [0,-0.5,0,0,0,0] # 210411 -0,5
+            pick_forward() # suck forward position
             robot_ctr.Step_RelLineCmd(positon,0,10)
             if Stop_motion_flag == True: #There are early pick up items
                 # Stop_motion_flag = False
