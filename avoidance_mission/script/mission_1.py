@@ -207,7 +207,7 @@ class EasyCATest:
                 # res.trans[11] = 0.58
                 if res.doit == True:
                     trans = np.mat(np.asarray(res.trans)).reshape(4,4)
-                    trans[2,3] = 0.61
+                    trans[2,3] = 0.59
                     # trans[0,3] += 0.015
                     trans = np.array(trans).reshape(-1)
                     # if res.type == 1:
@@ -324,7 +324,7 @@ class EasyCATest:
             elif self.state == State.move2placeup1:
                 pose = [7.7,-18,-22,180,0,0]
                 trans = tf.transformations.euler_matrix(radians(pose[3]), radians(pose[4]), radians(pose[5]), axes='sxyz')
-                trans = np.mat(trans) * self.dis_trans
+                trans = np.mat(trans) * np.linalg.inv(self.dis_trans)
                 pose[3:] = [degrees(abc) for abc in tf.transformations.euler_from_matrix(trans, axes='sxyz')]
                 print('pose:\,n', pose)
                 # robot_ctr.Set_ptp_speed(10)
@@ -349,7 +349,7 @@ class EasyCATest:
                 trans = tf.transformations.euler_matrix(radians(pose[3]), radians(pose[4]), radians(pose[5]), axes='sxyz')
                 print(trans)
                 print(self.dis_trans)
-                trans = np.mat(trans) * self.dis_trans
+                trans = np.mat(trans) * np.linalg.inv(self.dis_trans)
                 pose[3:] = [degrees(abc) for abc in tf.transformations.euler_from_matrix(trans, axes='sxyz')]
                 print('pose:\,n', pose)
                 robot_ctr.Set_ptp_speed(PTPSPEED_SLOW)

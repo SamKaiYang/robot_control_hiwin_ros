@@ -125,67 +125,68 @@ class bounding_boxes():
 
 boxes = bounding_boxes(0,0,0,0,0)
 def pick_back():
+    global box_position
+    depth = -30.15
     for case in switch(box_position):
         if case(box_position_enum.ahead_left):
-            target_base_above_avoidance[0] = target_base_above_avoidance[0] -0.2
-            target_base_above_avoidance[1] = target_base_above_avoidance[1] -0.2
+            position = [target_base_avoidance[0] -0.2 ,target_base_avoidance[1] -0.2,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
             break
         if case(box_position_enum.ahead):
-            target_base_above_avoidance[0] = target_base_above_avoidance[0] -0.3
+            position = [target_base_avoidance[0]  -0.3,target_base_avoidance[1] ,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
             break
         if case(box_position_enum.ahead_right):
-            target_base_above_avoidance[0] = target_base_above_avoidance[0] -0.2
-            target_base_above_avoidance[1] = target_base_above_avoidance[1] +0.2
+            position = [target_base_avoidance[0] -0.2,target_base_avoidance[1] +0.2,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
             break
         if case(box_position_enum.left):
-            target_base_above_avoidance[1] = target_base_above_avoidance[1] -0.3
+            position = [target_base_avoidance[0] ,target_base_avoidance[1] -0.3,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
             break
         if case(box_position_enum.middle):
-            target_base_above_avoidance[1] = target_base_above_avoidance[1] +0.3
+            position = [target_base_avoidance[0] ,target_base_avoidance[1] +0.4,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
             break
         if case(box_position_enum.right):
-            target_base_above_avoidance[1] = target_base_above_avoidance[1] +0.3
+            position = [target_base_avoidance[0] ,target_base_avoidance[1] +0.6,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
             break
         if case(box_position_enum.rear_left):
-            target_base_above_avoidance[0] = target_base_above_avoidance[0] +0.2
-            target_base_above_avoidance[1] = target_base_above_avoidance[1] -0.2
+            position = [target_base_avoidance[0] +0.2,target_base_avoidance[1] -0.2,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
             break
         if case(box_position_enum.rear):
-            target_base_above_avoidance[0] = target_base_above_avoidance[0] +0.2
+            position = [target_base_avoidance[0] +0.6,target_base_avoidance[1] ,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
             break
         if case(box_position_enum.rear_right):
-            target_base_above_avoidance[0] = target_base_above_avoidance[0] +0.2
-            target_base_above_avoidance[1] = target_base_above_avoidance[1] +0.2
+            position = [target_base_avoidance[0] +0.2,target_base_avoidance[1] +0.2,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
             break
+    return position
 def pick_forward():
+    global box_position
     for case in switch(box_position):
         if case(box_position_enum.ahead_left):
-            positon = [0.3,0.3,0,0,0,0] 
+            position = [0.3,0.3,0,0,0,0] 
             break
         if case(box_position_enum.ahead):
-            positon = [0.4,0,0,0,0,0] 
+            position = [0.4,0,0,0,0,0] 
             break
-        if case(box_position_enum.ahead):
-            positon = [0.3,-0.3,0,0,0,0] 
+        if case(box_position_enum.ahead_right):
+            position = [0.3,-0.3,-0.1,0,0,0]  ##-o.1
             break
-        if case(box_position_enum.ahead):
-            positon = [0,0.4,0,0,0,0] 
+        if case(box_position_enum.left):
+            position = [0,0.4,0,0,0,0] 
             break
-        if case(box_position_enum.ahead):
-            positon = [0,-0.5,0,0,0,0] 
+        if case(box_position_enum.middle):
+            position = [0,-0.5,0,0,0,0] 
             break
-        if case(box_position_enum.ahead):
-            positon = [0,-0.4,0,0,0,0] 
+        if case(box_position_enum.right):
+            position = [0,-0.3,0,0,0,0] 
             break
-        if case(box_position_enum.ahead):
-            positon = [0.2,-0.2,0,0,0,0] 
+        if case(box_position_enum.rear_left):
+            position = [-0.3,+0.3,0,0,0,0] 
             break
-        if case(box_position_enum.ahead):
-            positon = [0.2,0,0,0,0,0] 
+        if case(box_position_enum.rear):
+            position = [-0.6,0,-0.1,0,0,0]  ##-0.1
             break
-        if case(box_position_enum.ahead):
-            positon = [-0.3,-0.3,0,0,0,0] 
+        if case(box_position_enum.rear_right):
+            position = [-0.3,-0.3,0,0,0,0] 
             break
+    return position
 def Yolo_callback(data):
     global obj_num,pick_obj_times
     check_obj_count = 0
@@ -212,6 +213,7 @@ def Yolo_callback(data):
 
 def Obj_Data_Calculation():  #Enter the number of objects that have been picked and place
     global objects_picked_num,target_base_avoidance,target_base_above_avoidance
+    global box_position
     baseRequest = eye2baseRequest()
     baseRequest.ini_pose = [boxes.x,boxes.y,camera_z] 
     target_base = pixel_z_to_base_client(baseRequest) #[x,y,z]
@@ -292,7 +294,6 @@ def Obj_Data_Calculation():  #Enter the number of objects that have been picked 
     avoidRequest.dis = 0 # test 
     target_base_avoidance = base_avoidance_client(avoidRequest)
 
-    pick_back() # suck back position
 def pixel_z_to_base_client(pixel_to_base):
     rospy.wait_for_service('robot/pix2base')
     try:
@@ -456,7 +457,8 @@ def MotionItem(ItemNo):
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToObj_Pick2): # 210411 y+0  z -30.15
-            positon = [target_base_avoidance[0],target_base_avoidance[1],-30.15,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+            # positon = [target_base_avoidance[0],target_base_avoidance[1],-30.15,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+            positon = pick_back() # suck back position
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
             robot_ctr.Set_override_ratio(LineDown_Speed) ##speed low
 
@@ -481,7 +483,7 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.MoveToObj_PickUp):
             #time.sleep(0.3)  # pause pick for check sucker ready  #0923
             #positon = [0,-0.5,0,0,0,0] # 210411 -0,5
-            pick_forward() # suck forward position
+            positon = pick_forward() # suck forward position
             robot_ctr.Step_RelLineCmd(positon,0,10)
             if Stop_motion_flag == True: #There are early pick up items
                 # Stop_motion_flag = False
@@ -611,7 +613,7 @@ if __name__ == '__main__':
 
             robot_ctr.Set_operation_mode(1)
             
-            ArmGernel_Speed = 100
+            ArmGernel_Speed = 10
             LineDown_Speed = 5
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
