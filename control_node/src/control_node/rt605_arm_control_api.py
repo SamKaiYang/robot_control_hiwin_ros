@@ -90,6 +90,7 @@ class HiwinRobotInterface(object):
         self.callback = callback_type(callback_function)
         self.reconnecting = False  # Used to know if we are trying to reconnect
 
+<<<<<<< HEAD
         self.__pub_threads = threading.Thread(target=self.__pub_robot_info)
         self.__robot_info_pub = rospy.Publisher(
             'robot/curr_info',
@@ -111,6 +112,30 @@ class HiwinRobotInterface(object):
                 rate.sleep()
             except KeyboardInterrupt:
                 break
+=======
+    #     self.__pub_threads = threading.Thread(target=self.__pub_robot_info)
+    #     self.__robot_info_pub = rospy.Publisher(
+    #         'robot/curr_info',
+    #         robot_info,
+    #         queue_size=1
+    #     )
+    #     print("A")
+    #     self.__pub_threads.setDaemon(True)
+    #     self.__pub_threads.start()
+
+    # def __pub_robot_info(self):
+    #     rate = rospy.Rate(10)
+    #     while not rospy.is_shutdown():
+    #         try:
+    #             msg = robot_info()
+    #             msg.curr_pose = self.Get_current_position()
+    #             _, msg.tool_coor = self.Get_tool_data()
+    #             # _, msg.base_coor = self.Get_base_data()
+    #             self.__robot_info_pub.publish(msg)
+    #             rate.sleep()
+    #         except KeyboardInterrupt:
+    #             break
+>>>>>>> 6f397d5d4b12af2dfb62c8f5199e56f5039b51a5
 
 
 
