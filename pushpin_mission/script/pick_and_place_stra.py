@@ -364,14 +364,14 @@ def MotionItem(ItemNo):
         if case(Arm_cmd.Arm_Stop):
             print("Arm_Stop")
             break
-        if case(Arm_cmd.MoveToObj_Pick1):
-            positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
+        if case(Arm_cmd.MoveToObj_Pick1): # 210411 y +0.3 
+            positon = [target_base_above_avoidance[0],target_base_above_avoidance[1]+0.3,target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsPTPCmd(positon)
             print("MoveToObj_Pick1")
             MotionStep += 1
             break
-        if case(Arm_cmd.MoveToObj_Pick2):  # 0923 ori y   ori  +0  , z  -29.9  
-            positon = [target_base_avoidance[0],target_base_avoidance[1],-30,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
+        if case(Arm_cmd.MoveToObj_Pick2):  # 0923 ori y   ori  +0  , z  -29.9   # 210411 y +0.3  z -30.15
+            positon = [target_base_avoidance[0],target_base_avoidance[1]+0.3,-30.15,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
             robot_ctr.Set_override_ratio(LineDown_Speed) ##speed low
 
@@ -395,7 +395,7 @@ def MotionItem(ItemNo):
             break
         if case(Arm_cmd.MoveToObj_PickUp):
             #time.sleep(0.3)  # pause pick for check sucker ready  #0923
-            positon = [0,-0.4,0,0,0,0]
+            positon = [0,-0.5,0,0,0,0] # 210411 -0,5
             robot_ctr.Step_RelLineCmd(positon,0,10)
             if Stop_motion_flag == True: #There are early pick up items
                 # Stop_motion_flag = False
@@ -525,11 +525,11 @@ if __name__ == '__main__':
 
             robot_ctr.Set_operation_mode(1)
             
-            ArmGernel_Speed = 50
+            ArmGernel_Speed = 100
             LineDown_Speed = 5
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
-            robot_ctr.Set_acc_dec_ratio(100)
+            robot_ctr.Set_acc_dec_ratio(50)
             robot_ctr.Set_digital_output(1,False)
             robot_ctr.Set_digital_output(2,False)
             robot_ctr.Set_digital_output(3,False)
