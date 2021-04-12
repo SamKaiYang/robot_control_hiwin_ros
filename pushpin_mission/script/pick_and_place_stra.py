@@ -128,7 +128,7 @@ class bounding_boxes():
 boxes = bounding_boxes(0,0,0,0,0)
 def pick_back():
     global box_position
-    depth = -30.15
+    depth = -30.2 # depth -30.2 cm ori -30.15
     for case in switch(box_position):
         if case(box_position_enum.ahead_left):
             position = [target_base_avoidance[0] -0.2 ,target_base_avoidance[1] -0.2,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
@@ -143,7 +143,7 @@ def pick_back():
             position = [target_base_avoidance[0] ,target_base_avoidance[1] -0.3,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
             break
         if case(box_position_enum.middle):
-            position = [target_base_avoidance[0] ,target_base_avoidance[1] +0.5,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
+            position = [target_base_avoidance[0] ,target_base_avoidance[1] +0.6,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
             break
         if case(box_position_enum.right):
             position = [target_base_avoidance[0] ,target_base_avoidance[1] +0.6,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
@@ -174,7 +174,7 @@ def pick_forward():
             position = [0,0.4,0,0,0,0] 
             break
         if case(box_position_enum.middle):
-            position = [0,-0.5,0,0,0,0] 
+            position = [0,-0.6,0,0,0,0] 
             break
         if case(box_position_enum.right):
             position = [0,-0.3,0,0,0,0] 
