@@ -57,6 +57,8 @@ objects_picked_num = 0#Number of objects picked
 
 LineDown_Speed = 3
 ArmGernel_Speed = 5
+PushPick_Speed = 1
+Armlimit_Speed = 10
 class box_position_enum(enum.IntEnum):
     ahead_left = 1
     ahead = 2
@@ -141,7 +143,7 @@ def pick_back():
             position = [target_base_avoidance[0] ,target_base_avoidance[1] -0.3,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
             break
         if case(box_position_enum.middle):
-            position = [target_base_avoidance[0] ,target_base_avoidance[1] +0.4,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
+            position = [target_base_avoidance[0] ,target_base_avoidance[1] +0.5,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
             break
         if case(box_position_enum.right):
             position = [target_base_avoidance[0] ,target_base_avoidance[1] +0.6,depth,target_base_avoidance[3],target_base_avoidance[4],target_base_avoidance[5]]
@@ -445,7 +447,7 @@ def Execute_Mission():
 def MotionItem(ItemNo):
     global SpeedValue,PushFlag,MissionEndFlag,CurrentMissionType,MotionStep,objects_picked_num,obj_num,MissionType_Flag
     global target_base_avoidance,target_base_above_avoidance,arm_down_pick_flag,Stop_motion_flag,Absort_fail_to_Get_image
-    global LineDown_Speed, ArmGernel_Speed
+    global LineDown_Speed, ArmGernel_Speed, Armlimit_Speed, PushPick_Speed
     for case in switch(ItemNo):
         if case(Arm_cmd.Arm_Stop):
             print("Arm_Stop")
@@ -485,6 +487,7 @@ def MotionItem(ItemNo):
             #positon = [0,-0.5,0,0,0,0] # 210411 -0,5
             positon = pick_forward() # suck forward position
             robot_ctr.Step_RelLineCmd(positon,0,10)
+            robot_ctr.Set_override_ratio(PushPick_Speed) ##speed low Speed = 1
             if Stop_motion_flag == True: #There are early pick up items
                 # Stop_motion_flag = False
                 print("Absort success fucccccckkkkk") 
@@ -492,22 +495,28 @@ def MotionItem(ItemNo):
             # else: # Did not pick up items early
             positon = [target_base_above_avoidance[0],target_base_above_avoidance[1],target_base_above_avoidance[2],target_base_above_avoidance[3],target_base_above_avoidance[4],target_base_above_avoidance[5]] ###target obj position
             robot_ctr.Step_AbsLine_PosCmd(positon,0,10)
-            robot_ctr.Set_override_ratio(ArmGernel_Speed)
+            robot_ctr.Set_override_ratio(LineDown_Speed)
             arm_down_pick_flag = False #Initialize the flag to determine the next action 
             print("MoveToObj_PickUp")
             MotionStep += 1
             break
         if case(Arm_cmd.MoveToTarget_Place):
-            positon = [19.4 ,4.6, 2.1, -180,0,0]
+            # positon = [19.4 ,4.6, 2.1, -180,0,-90]
+            # robot_ctr.Step_AbsPTPCmd(positon)
+            # positon = [19.4 ,-10, 2.1, -160,0,-90] #RX +20
+            # robot_ctr.Step_AbsPTPCmd(positon)
+            positon = [19.4 ,6, 2.1, -180,0,0] ## 0412 y= 6 # ori positon = [19.4 ,4.6, 2.1, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
+            robot_ctr.Set_override_ratio(ArmGernel_Speed)
             positon = [19.4 ,-10, 2.1, -180,0,0]
             robot_ctr.Step_AbsPTPCmd(positon)
+            robot_ctr.Set_override_ratio(Armlimit_Speed) ###0412
             print("MoveToTarget_Place")
             MotionStep += 1
             break
         if case(Arm_cmd.Absort_OFF):
             robot_ctr.Set_digital_output(1,False)
-            time.sleep(0.1)
+            time.sleep(0.3)
             print("Absort_OFF")
             MotionStep += 1
             break
@@ -521,6 +530,7 @@ def MotionItem(ItemNo):
             ### test take pic point(1)
             positon =  [11.2218, 24.6318, 3.519, 179.994, 10.002, -0.488]
             robot_ctr.Step_AbsPTPCmd(positon)
+            robot_ctr.Set_override_ratio(ArmGernel_Speed)
             # time.sleep(20) ### test 9/16
             MotionStep += 1
             break
@@ -613,8 +623,10 @@ if __name__ == '__main__':
 
             robot_ctr.Set_operation_mode(1)
             
-            ArmGernel_Speed = 10
+            ArmGernel_Speed = 50
             LineDown_Speed = 5
+            Armlimit_Speed = 100
+            PushPick_Speed = 1
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
             robot_ctr.Set_acc_dec_ratio(50)
