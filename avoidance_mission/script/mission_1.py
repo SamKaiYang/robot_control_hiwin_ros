@@ -17,7 +17,7 @@ PTPSPEED = 20
 PTPSPEED_SLOW = 10
 
 pic_pos = \
-[[11., 27., 17.5, 179.948, 10.215, -0.04],
+[[11.19, 26.09, 17.5, 180, 10., 0.],
 [11., 11., 14., -155.677, 9.338, 4.16],
 [11., 45., 15., 162.071, 8.982, -2.503],
 [20., 29., 13., -179.401, 20.484, 0.484],
@@ -162,7 +162,7 @@ class EasyCATest:
                 print("sdfsdfdsdfgsdfgsdfg")
                 pos = self.pic_pos[self.pic_pos_indx]
                 # self.pic_pos_indx += 1
-                position = [pos[0], pos[1]-3, pos[2], pos[3], pos[4], pos[5]]
+                position = [pos[0], pos[1], pos[2], pos[3], pos[4], pos[5]]
                 # pos[1] -= 3
                 # robot_ctr.Set_ptp_speed(10)
                 robot_ctr.Step_AbsPTPCmd(position)
@@ -237,6 +237,7 @@ class EasyCATest:
                     print("req.ini_pose: ", req.ini_pose)
                     self.target_obj = self.hand_eye_client(req).tar_pose
                     self.target_obj = np.mat(self.target_obj).reshape(4,4)
+                    self.target_obj = self.target_obj * np.mat(tf.transformations.rotation_matrix(suc_angle, [0, 1, 0], point=None))
                     self.right_side = self.check_side(self.target_obj)
                      
                     x, y, z = np.array(np.multiply(self.target_obj[0:3, 3:], 100)).reshape(-1)
