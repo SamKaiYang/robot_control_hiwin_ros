@@ -359,21 +359,32 @@ def MotionItem(ItemNo):
             #######################
             ## egg    ## chili   ##
             #######################
-            if label_name == 'lemon':
-                positon = [26.45, -10.22, 3, -180,0,0]
-                robot_ctr.Step_AbsPTPCmd(positon)
-            elif label_name == 'pepper':
-                positon = [13.66 ,-10.22, 3, -180,0,0]
+            #### 3 label place 
+            ############
+            ## ketchup 
+            ##############
+            ## pepper 
+            #########
+            ## egg    
+            ##########
+            # if label_name == 'lemon':
+            #     positon = [26.45, -10.22, 3, -180,0,0]
+            #     robot_ctr.Step_AbsPTPCmd(positon)
+            if label_name == 'pepper':
+                positon = [19.4 ,-10.22, 3.6, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
             elif label_name == 'egg':
-                positon = [1.65 ,-10.22, 3, -180,0,0]
+                positon = [7.5 ,-10.22, 3.6, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
             elif label_name == 'ketchup':
-                positon = [13.66 ,-17.99, 3, -180,0,0]
+                positon = [26.45, -10.22, 3.6, -180,0,0]
                 robot_ctr.Step_AbsPTPCmd(positon)
-            elif label_name == 'chili':
-                positon = [1.65 ,-17.99, 3, -180,0,0]
-                robot_ctr.Step_AbsPTPCmd(positon)
+            # elif label_name == 'chili':
+            #     positon = [1.65 ,-17.99, 3, -180,0,0]
+            #     robot_ctr.Step_AbsPTPCmd(positon)
+            # elif label_name == 'lemon':
+            #     positon = [26.45, -10.22, 3, -180,0,0]
+            #     robot_ctr.Step_AbsPTPCmd(positon)
 
             print("MoveToTarget_Place")
             MotionStep += 1
@@ -473,11 +484,11 @@ if __name__ == '__main__':
 
             robot_ctr.Set_operation_mode(1)
             
-            ArmGernel_Speed = 100
-            LineDown_Speed = 100
+            ArmGernel_Speed = 10
+            LineDown_Speed = 10
             robot_ctr.Set_override_ratio(ArmGernel_Speed)
 
-            robot_ctr.Set_acc_dec_ratio(100)
+            robot_ctr.Set_acc_dec_ratio(50)
             robot_ctr.Set_digital_output(1,False)
             robot_ctr.Set_digital_output(2,True)
             robot_ctr.Set_digital_output(3,True)
