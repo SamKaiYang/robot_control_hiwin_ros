@@ -1,3 +1,5 @@
 CATKIN_IGNORE
 *.pyc
-
+/.vscode
+/hiwin_ra620_1621_support
+/hiwin_ra610_1355_gb_support
