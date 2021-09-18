@@ -101,13 +101,14 @@ if __name__ == '__main__':
     robot_ctr.connect()
     try:
         if robot_ctr.is_connected():
+            print("success")
             robot_ctr.Set_operation_mode(0)
             # robot_ctr.Set_base_number(5)
             robot_ctr.Set_base_number(0)
             robot_ctr.Set_tool_number(15)
 
-            robot_ctr.Set_operation_mode(1)
-            robot_ctr.Set_override_ratio(10)
+            robot_ctr.Set_operation_mode(0)
+            robot_ctr.Set_override_ratio(50)
             robot_ctr.Set_acc_dec_ratio(100)
 
         while(1):
